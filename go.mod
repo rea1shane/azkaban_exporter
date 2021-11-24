@@ -1,4 +1,4 @@
-module azkaban-exporter
+module azkaban_exporter
 
 go 1.17
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"azkaban-exporter/config"
+	"azkaban_exporter/config"
 	"flag"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
