@@ -10,6 +10,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 	"net/http"
 	"os"
+	"os/user"
 )
 
 const (
@@ -40,6 +41,12 @@ func main() {
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 	logger := promlog.New(promlogConfig)
+
+	_ = level.Info(logger).Log("msg", "Starting node_exporter", "version", version.Info())
+	_ = level.Info(logger).Log("msg", "Build context", "build_context", version.BuildContext())
+	if userCurrent, err := user.Current(); err == nil && userCurrent.Uid == "0" {
+		_ = level.Warn(logger).Log("msg", "Node Exporter is running as root user. This exporter is designed to run as unpriviledged user, root is not required.")
+	}
 
 	// TODO 实现特定的 http Handler
 	http.Handle(*metricsPath, promhttp.Handler())
