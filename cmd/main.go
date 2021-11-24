@@ -1,26 +1,61 @@
 package main
 
 import (
-	"azkaban_exporter/config"
-	"flag"
-	"fmt"
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"log"
+	"github.com/prometheus/common/promlog"
+	"github.com/prometheus/common/promlog/flag"
+	"github.com/prometheus/common/version"
+	"github.com/prometheus/exporter-toolkit/web"
+	"gopkg.in/alecthomas/kingpin.v2"
 	"net/http"
+	"os"
 )
 
-const target = "Azkaban"
+const (
+	target  = "Azkaban"
+	appName = "azkaban_exporter"
+)
 
 func main() {
-	var port int
-	var configFilePath string
-	flag.IntVar(&port, "web.listen-address", 3001, `Server port, default: 3001`)
-	flag.StringVar(&configFilePath, "config.file", "conf/exporter.yml", fmt.Sprintf("%s exporter configuration file path.", target))
-	flag.Parse()
+	var (
+		listenAddress = kingpin.Flag(
+			"web.listen-address",
+			"Address on which to expose metrics and web interface.",
+		).Default(":9900").String()
+		metricsPath = kingpin.Flag(
+			"web.telemetry-path",
+			"Path under which to expose metrics.",
+		).Default("/metrics").String()
+		configFile = kingpin.Flag(
+			"web.config",
+			"[EXPERIMENTAL] Path to config yaml file that can enable TLS or authentication.",
+		).Default("").String()
+	)
 
-	var e config.Exporter
-	e.GetConf(configFilePath)
+	promlogConfig := &promlog.Config{}
+	flag.AddFlags(kingpin.CommandLine, promlogConfig)
+	kingpin.Version(version.Print(appName))
+	kingpin.CommandLine.UsageWriter(os.Stdout)
+	kingpin.HelpFlag.Short('h')
+	kingpin.Parse()
+	logger := promlog.New(promlogConfig)
 
-	http.Handle("/metrics", promhttp.Handler())
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", e.Port), nil))
+	// TODO 实现特定的 http Handler
+	http.Handle(*metricsPath, promhttp.Handler())
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`<html>
+			<head><title>` + target + ` Exporter</title></head>
+			<body>
+			<h1>` + target + ` Exporter</h1>
+			<p><a href="` + *metricsPath + `">Metrics</a></p>
+			</body>
+			</html>`))
+	})
+
+	server := &http.Server{Addr: *listenAddress}
+	if err := web.ListenAndServe(server, *configFile, logger); err != nil {
+		_ = level.Error(logger).Log("err", err)
+		os.Exit(1)
+	}
 }
