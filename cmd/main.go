@@ -1,6 +1,9 @@
 package main
 
 import (
+	"azkaban_exporter/pkg/azkaban"
+	"azkaban_exporter/require"
+	"fmt"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promlog"
@@ -13,17 +16,16 @@ import (
 	"os/user"
 )
 
-const (
-	target  = "Azkaban"
-	appName = "azkaban_exporter"
-)
+func enter(t require.Target) {
+	target := t.GetTargetName()
+	appName := t.GetAppName()
+	defaultListenAddress := fmt.Sprintf(":%d", t.GetDefaultListenPort())
 
-func main() {
 	var (
 		listenAddress = kingpin.Flag(
 			"web.listen-address",
 			"Address on which to expose metrics and web interface.",
-		).Default(":9900").String()
+		).Default(defaultListenAddress).String()
 		metricsPath = kingpin.Flag(
 			"web.telemetry-path",
 			"Path under which to expose metrics.",
@@ -65,4 +67,9 @@ func main() {
 		_ = level.Error(logger).Log("err", err)
 		os.Exit(1)
 	}
+}
+
+func main() {
+	var target = azkaban.Azkaban{}
+	enter(target)
 }
