@@ -13,20 +13,28 @@ import (
 
 // AzkabanHandler wraps an unfiltered http.Handler
 type AzkabanHandler struct {
-	Logger log.Logger
+	Handler http.Handler
+	Logger  log.Logger
+}
+
+func NewAzkabanHandler(logger log.Logger) (*AzkabanCollector, error) {
+	panic("implement me")
 }
 
 func (h AzkabanHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	h.Handler.ServeHTTP(writer, request)
+}
+
+func (h *AzkabanHandler) InnerHandler() (http.Handler, error) {
 	collector, err := NewAzkabanCollector(h.Logger)
 	if err != nil {
-		return
+		return nil, fmt.Errorf("couldn't create collector: %s", err)
 	}
 
 	r := prometheus.NewRegistry()
 	r.MustRegister(version.NewCollector("node_exporter"))
 	if err := r.Register(collector); err != nil {
-		_ = fmt.Errorf("couldn't register node collector: %s", err)
-		return
+		return nil, fmt.Errorf("couldn't register node collector: %s", err)
 	}
 	handler := promhttp.HandlerFor(
 		prometheus.Gatherers{r},
@@ -36,5 +44,5 @@ func (h AzkabanHandler) ServeHTTP(writer http.ResponseWriter, request *http.Requ
 			MaxRequestsInFlight: 40, // TODO 变为读取命令行参数
 		},
 	)
-	handler.ServeHTTP(writer, request)
+	return handler, nil
 }
