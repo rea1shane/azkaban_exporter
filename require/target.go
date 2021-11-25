@@ -1,13 +1,12 @@
 package require
 
-// Exporter customize exporter's basic info
-type Exporter interface {
-	// GetName return application name
-	GetName() string
+import (
+	"github.com/go-kit/log"
+	"github.com/prometheus/client_golang/prometheus"
+	"net/http"
+)
 
-	// GetMonitorTargetName return target name for monitoring
-	GetMonitorTargetName() string
-
-	// GetDefaultPort return default web listen port
-	GetDefaultPort() int
+type Target interface {
+	NewCollector(logger log.Logger) (*prometheus.Collector, error)
+	NewHandler(logger log.Logger) *http.Handler
 }
