@@ -16,10 +16,10 @@ import (
 	"os/user"
 )
 
-func enter(t require.Target) {
-	target := t.GetTargetName()
-	appName := t.GetAppName()
-	defaultListenAddress := fmt.Sprintf(":%d", t.GetDefaultListenPort())
+func enter(e require.Exporter) {
+	target := e.GetMonitorTargetName()
+	appName := e.GetName()
+	defaultListenAddress := fmt.Sprintf(":%d", e.GetDefaultPort())
 
 	var (
 		listenAddress = kingpin.Flag(

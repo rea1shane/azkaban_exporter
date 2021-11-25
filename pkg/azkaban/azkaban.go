@@ -2,14 +2,14 @@ package azkaban
 
 type Azkaban struct{}
 
-func (Azkaban) GetTargetName() string {
-	return "Azkaban"
-}
-
-func (Azkaban) GetAppName() string {
+func (Azkaban) GetName() string {
 	return "azkaban_exporter"
 }
 
-func (Azkaban) GetDefaultListenPort() int {
+func (Azkaban) GetMonitorTargetName() string {
+	return "Azkaban"
+}
+
+func (Azkaban) GetDefaultPort() int {
 	return 9900
 }
