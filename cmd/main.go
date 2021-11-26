@@ -1,11 +1,11 @@
 package main
 
 import (
-	"azkaban_exporter/pkg/azkaban"
+	"azkaban_exporter/monitor"
+	http2 "azkaban_exporter/pkg/http"
 	"azkaban_exporter/require"
 	"fmt"
 	"github.com/go-kit/log/level"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/common/version"
@@ -16,16 +16,12 @@ import (
 	"os/user"
 )
 
-func enter(e require.Exporter) {
-	target := e.GetMonitorTargetName()
-	appName := e.GetName()
-	defaultListenAddress := fmt.Sprintf(":%d", e.GetDefaultPort())
-
+func enter(exporter require.Exporter, target require.Target) {
 	var (
 		listenAddress = kingpin.Flag(
 			"web.listen-address",
 			"Address on which to expose metrics and web interface.",
-		).Default(defaultListenAddress).String()
+		).Default(fmt.Sprintf(":%d", exporter.DefaultPort)).String()
 		metricsPath = kingpin.Flag(
 			"web.telemetry-path",
 			"Path under which to expose metrics.",
@@ -38,25 +34,24 @@ func enter(e require.Exporter) {
 
 	promlogConfig := &promlog.Config{}
 	flag.AddFlags(kingpin.CommandLine, promlogConfig)
-	kingpin.Version(version.Print(appName))
+	kingpin.Version(version.Print(exporter.AppName))
 	kingpin.CommandLine.UsageWriter(os.Stdout)
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 	logger := promlog.New(promlogConfig)
 
-	_ = level.Info(logger).Log("msg", "Starting "+appName, "version", version.Info())
+	_ = level.Info(logger).Log("msg", "Starting "+exporter.AppName, "version", version.Info())
 	_ = level.Info(logger).Log("msg", "Build context", "build_context", version.BuildContext())
 	if userCurrent, err := user.Current(); err == nil && userCurrent.Uid == "0" {
-		_ = level.Warn(logger).Log("msg", target+" Exporter is running as root user. This exporter is designed to run as unpriviledged user, root is not required.")
+		_ = level.Warn(logger).Log("msg", exporter.TargetName+" Exporter is running as root user. This exporter is designed to run as unpriviledged user, root is not required.")
 	}
 
-	// TODO 实现特定的 http Handler
-	http.Handle(*metricsPath, promhttp.Handler())
+	http.Handle(*metricsPath, http2.NewPrometheusHandler(logger, exporter, target))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`<html>
-			<head><title>` + target + ` Exporter</title></head>
+			<head><title>` + exporter.TargetName + ` Exporter</title></head>
 			<body>
-			<h1>` + target + ` Exporter</h1>
+			<h1>` + exporter.TargetName + ` Exporter</h1>
 			<p><a href="` + *metricsPath + `">Metrics</a></p>
 			</body>
 			</html>`))
@@ -70,6 +65,17 @@ func enter(e require.Exporter) {
 }
 
 func main() {
-	var target = azkaban.Azkaban{}
-	enter(target)
+	azkabanExporter := require.Exporter{
+		AppName:     "azkaban_exporter",
+		TargetName:  "Azkaban",
+		DefaultPort: 9900,
+	}
+	azkaban := monitor.Azkaban{
+		Address: []string{
+			"127.0.0.1:10000",
+			"127.0.0.2:10000",
+			"127.0.0.3:10000",
+		},
+	}
+	enter(azkabanExporter, azkaban)
 }
