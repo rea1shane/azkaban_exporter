@@ -1,10 +1,11 @@
 package main
 
 import (
+	"azkaban_exporter/monitor"
+	http2 "azkaban_exporter/pkg/http"
 	"azkaban_exporter/require"
 	"fmt"
 	"github.com/go-kit/log/level"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/common/version"
@@ -15,7 +16,7 @@ import (
 	"os/user"
 )
 
-func enter(exporter require.Exporter, handler http.Handler) {
+func enter(exporter require.Exporter, target require.Target) {
 	var (
 		listenAddress = kingpin.Flag(
 			"web.listen-address",
@@ -45,8 +46,7 @@ func enter(exporter require.Exporter, handler http.Handler) {
 		_ = level.Warn(logger).Log("msg", exporter.TargetName+" Exporter is running as root user. This exporter is designed to run as unpriviledged user, root is not required.")
 	}
 
-	// TODO 实现特定的 http Handler
-	http.Handle(*metricsPath, handler)
+	http.Handle(*metricsPath, http2.NewPrometheusHandler(logger, exporter, target))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`<html>
 			<head><title>` + exporter.TargetName + ` Exporter</title></head>
@@ -70,6 +70,12 @@ func main() {
 		TargetName:  "Azkaban",
 		DefaultPort: 9900,
 	}
-	handler := promhttp.Handler()
-	enter(azkabanExporter, handler)
+	azkaban := monitor.Azkaban{
+		Address: []string{
+			"127.0.0.1:10000",
+			"127.0.0.2:10000",
+			"127.0.0.3:10000",
+		},
+	}
+	enter(azkabanExporter, azkaban)
 }
