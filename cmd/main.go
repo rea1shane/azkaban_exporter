@@ -2,7 +2,7 @@ package main
 
 import (
 	"azkaban_exporter/azkaban"
-	http2 "azkaban_exporter/pkg/prometheus"
+	"azkaban_exporter/pkg/prometheus"
 	"azkaban_exporter/required"
 	"fmt"
 	"github.com/go-kit/log/level"
@@ -46,7 +46,7 @@ func enter(exporter required.Exporter, target required.Target) {
 		_ = level.Warn(logger).Log("msg", exporter.TargetName+" Exporter is running as root user. This exporter is designed to run as unpriviledged user, root is not required.")
 	}
 
-	http.Handle(*metricsPath, http2.NewPrometheusHandler(logger, exporter, target))
+	http.Handle(*metricsPath, prometheus.NewPrometheusHandler(logger, exporter, target))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`<html>
 			<head><title>` + exporter.TargetName + ` Exporter</title></head>
