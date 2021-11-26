@@ -1,7 +1,7 @@
 package main
 
 import (
-	"azkaban_exporter/monitor"
+	"azkaban_exporter/azkaban"
 	http2 "azkaban_exporter/pkg/http"
 	"azkaban_exporter/require"
 	"fmt"
@@ -70,12 +70,12 @@ func main() {
 		TargetName:  "Azkaban",
 		DefaultPort: 9900,
 	}
-	azkaban := monitor.Azkaban{
+	a := azkaban.Azkaban{
 		Address: []string{
 			"127.0.0.1:10000",
 			"127.0.0.2:10000",
 			"127.0.0.3:10000",
 		},
 	}
-	enter(azkabanExporter, azkaban)
+	enter(azkabanExporter, a)
 }

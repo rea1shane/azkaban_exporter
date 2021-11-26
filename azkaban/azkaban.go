@@ -1,4 +1,4 @@
-package monitor
+package azkaban
 
 import (
 	"github.com/go-kit/log"
@@ -10,5 +10,5 @@ type Azkaban struct {
 }
 
 func (a Azkaban) NewCollector(logger log.Logger) (prometheus.Collector, error) {
-	return AzkabanCollector{}, nil
+	return Collector{}, nil
 }
