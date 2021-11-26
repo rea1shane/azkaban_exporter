@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-// PrometheusHandler is a common handler which implement net/http.Handler
+// PrometheusHandler is a common handler which implement http.Handler
 type PrometheusHandler struct {
 	Handler http.Handler
 	Logger  log.Logger
@@ -31,24 +31,25 @@ func NewPrometheusHandler(logger log.Logger, exporter required.Exporter, target 
 	return h
 }
 
-// ServeHTTP implements net/http.Handler.
+// ServeHTTP implements http.Handler.
 func (h *PrometheusHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	h.Handler.ServeHTTP(writer, request)
 }
 
+// InnerHandler create a http.Handler in PrometheusHandler
 func (h *PrometheusHandler) InnerHandler(exporter required.Exporter, target required.Target) (http.Handler, error) {
 	collector, err := target.NewCollector(h.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create collector: %s", err)
 	}
 
-	r := prometheus.NewRegistry()
-	r.MustRegister(version.NewCollector(exporter.AppName))
-	if err := r.Register(collector); err != nil {
+	registry := prometheus.NewRegistry()
+	registry.MustRegister(version.NewCollector(exporter.AppName))
+	if err := registry.Register(collector); err != nil {
 		return nil, fmt.Errorf("couldn't register %s collector: %s", strings.ToLower(exporter.TargetName), err)
 	}
 	handler := promhttp.HandlerFor(
-		prometheus.Gatherers{r},
+		prometheus.Gatherers{registry},
 		promhttp.HandlerOpts{
 			ErrorLog:            stdlog.New(log.NewStdlibAdapter(level.Error(h.Logger)), "", 0),
 			ErrorHandling:       promhttp.ContinueOnError,

@@ -10,5 +10,5 @@ type Azkaban struct {
 }
 
 func (a Azkaban) NewCollector(logger log.Logger) (prometheus.Collector, error) {
-	return Collector{}, nil
+	return &Collector{Logger: logger}, nil
 }

@@ -6,5 +6,6 @@ import (
 )
 
 type Target interface {
+	// NewCollector create a new prometheus.Collector
 	NewCollector(logger log.Logger) (prometheus.Collector, error)
 }
