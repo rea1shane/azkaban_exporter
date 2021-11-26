@@ -1,4 +1,4 @@
-package require
+package required
 
 import (
 	"github.com/go-kit/log"

@@ -1,4 +1,4 @@
-package require
+package required
 
 // Exporter basic info
 type Exporter struct {

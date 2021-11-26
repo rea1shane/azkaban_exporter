@@ -3,7 +3,7 @@ package main
 import (
 	"azkaban_exporter/azkaban"
 	http2 "azkaban_exporter/pkg/http"
-	"azkaban_exporter/require"
+	"azkaban_exporter/required"
 	"fmt"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/common/promlog"
@@ -16,7 +16,7 @@ import (
 	"os/user"
 )
 
-func enter(exporter require.Exporter, target require.Target) {
+func enter(exporter required.Exporter, target required.Target) {
 	var (
 		listenAddress = kingpin.Flag(
 			"web.listen-address",
@@ -65,7 +65,7 @@ func enter(exporter require.Exporter, target require.Target) {
 }
 
 func main() {
-	azkabanExporter := require.Exporter{
+	azkabanExporter := required.Exporter{
 		AppName:     "azkaban_exporter",
 		TargetName:  "Azkaban",
 		DefaultPort: 9900,

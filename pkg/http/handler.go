@@ -1,7 +1,7 @@
 package http
 
 import (
-	"azkaban_exporter/require"
+	"azkaban_exporter/required"
 	"fmt"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -19,7 +19,7 @@ type PrometheusHandler struct {
 	Logger  log.Logger
 }
 
-func NewPrometheusHandler(logger log.Logger, exporter require.Exporter, target require.Target) *PrometheusHandler {
+func NewPrometheusHandler(logger log.Logger, exporter required.Exporter, target required.Target) *PrometheusHandler {
 	h := &PrometheusHandler{
 		Logger: logger,
 	}
@@ -36,7 +36,7 @@ func (h *PrometheusHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 	h.Handler.ServeHTTP(writer, request)
 }
 
-func (h *PrometheusHandler) InnerHandler(exporter require.Exporter, target require.Target) (http.Handler, error) {
+func (h *PrometheusHandler) InnerHandler(exporter required.Exporter, target required.Target) (http.Handler, error) {
 	collector, err := target.NewCollector(h.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create collector: %s", err)
