@@ -1,4 +1,4 @@
-package http
+package prometheus
 
 import (
 	"azkaban_exporter/required"
@@ -13,14 +13,14 @@ import (
 	"strings"
 )
 
-// PrometheusHandler is a common handler which implement http.Handler
-type PrometheusHandler struct {
+// Handler is a common handler which implement http.Handler
+type Handler struct {
 	Handler http.Handler
 	Logger  log.Logger
 }
 
-func NewPrometheusHandler(logger log.Logger, exporter required.Exporter, target required.Target) *PrometheusHandler {
-	h := &PrometheusHandler{
+func NewPrometheusHandler(logger log.Logger, exporter required.Exporter, target required.Target) *Handler {
+	h := &Handler{
 		Logger: logger,
 	}
 	if innerHandler, err := h.InnerHandler(exporter, target); err != nil {
@@ -32,12 +32,12 @@ func NewPrometheusHandler(logger log.Logger, exporter required.Exporter, target 
 }
 
 // ServeHTTP implements http.Handler.
-func (h *PrometheusHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	h.Handler.ServeHTTP(writer, request)
 }
 
-// InnerHandler create a http.Handler in PrometheusHandler
-func (h *PrometheusHandler) InnerHandler(exporter required.Exporter, target required.Target) (http.Handler, error) {
+// InnerHandler create a http.Handler in Handler
+func (h *Handler) InnerHandler(exporter required.Exporter, target required.Target) (http.Handler, error) {
 	collector, err := target.NewCollector(h.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create collector: %s", err)

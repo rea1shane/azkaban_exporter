@@ -2,7 +2,7 @@ package main
 
 import (
 	"azkaban_exporter/azkaban"
-	http2 "azkaban_exporter/pkg/http"
+	http2 "azkaban_exporter/pkg/prometheus"
 	"azkaban_exporter/required"
 	"fmt"
 	"github.com/go-kit/log/level"
