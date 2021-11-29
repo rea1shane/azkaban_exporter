@@ -71,7 +71,7 @@ func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 
 // InnerHandler create a http.Handler in Handler
 func (h *Handler) InnerHandler(filters ...string) (http.Handler, error) {
-	targetCollector, err := NewTargetCollector(h.Target.GetNamespace(), h.Exporter.AppName, h.Logger)
+	targetCollector, err := NewTargetCollector(h.Exporter, h.Target, h.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create collector: %s", err)
 	}
