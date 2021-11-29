@@ -14,11 +14,11 @@ import (
 )
 
 var (
-	Factories              = make(map[string]func(logger log.Logger) (required.Collector, error))
-	InitiatedCollectorsMtx = sync.Mutex{}
-	InitiatedCollectors    = make(map[string]required.Collector)
-	CollectorState         = make(map[string]*bool)
-	ForcedCollectors       = map[string]bool{} // ForcedCollectors collectors which have been explicitly enabled or disabled
+	Factories              = make(map[string]func(logger log.Logger) (required.Collector, error)) // Factories records all collector's construction method
+	InitiatedCollectorsMtx = sync.Mutex{}                                                         // InitiatedCollectorsMtx avoid thread conflicts
+	InitiatedCollectors    = make(map[string]required.Collector)                                  // InitiatedCollectors record the collectors that have been initialized in the method NewTargetCollector (To reduce the method call)
+	CollectorState         = make(map[string]*bool)                                               // CollectorState records all collector's default state (enable or disable)
+	ForcedCollectors       = map[string]bool{}                                                    // ForcedCollectors collectors which have been explicitly enabled or disabled
 )
 
 type TargetCollector struct {
@@ -78,7 +78,7 @@ func NewTargetCollector(exporter exporter.Exporter, logger log.Logger, filters .
 		}
 	}
 	return &TargetCollector{
-		Collectors: InitiatedCollectors,
+		Collectors: collectors,
 		Logger:     logger,
 		ScrapeDurationDesc: prometheus.NewDesc(
 			prometheus.BuildFQName(exporter.Namespace, "scrape", "collector_duration_seconds"),
