@@ -26,6 +26,14 @@ func enter(exporter required.Exporter, target required.Target) {
 			"web.telemetry-path",
 			"Path under which to expose metrics.",
 		).Default("/metrics").String()
+		disableExporterMetrics = kingpin.Flag(
+			"web.disable-exporter-metrics",
+			"Exclude metrics about the exporter itself (promhttp_*, process_*, go_*).",
+		).Default("false").Bool()
+		maxRequests = kingpin.Flag(
+			"web.max-requests",
+			"Maximum number of parallel scrape requests. Use 0 to disable.",
+		).Default("40").Int()
 		configFile = kingpin.Flag(
 			"web.config",
 			"[EXPERIMENTAL] Path to config yaml file that can enable TLS or authentication.",
@@ -46,7 +54,7 @@ func enter(exporter required.Exporter, target required.Target) {
 		_ = level.Warn(logger).Log("msg", exporter.TargetName+" Exporter is running as root user. This exporter is designed to run as unpriviledged user, root is not required.")
 	}
 
-	http.Handle(*metricsPath, prometheus.NewPrometheusHandler(logger, exporter, target))
+	http.Handle(*metricsPath, prometheus.NewPrometheusHandler(!*disableExporterMetrics, *maxRequests, logger, exporter, target))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`<html>
 			<head><title>` + exporter.TargetName + ` Exporter</title></head>

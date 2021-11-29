@@ -12,11 +12,6 @@ import (
 	"time"
 )
 
-const (
-	DefaultEnabled  = true
-	DefaultDisabled = false
-)
-
 var (
 	Factories              = make(map[string]func(logger log.Logger) (required.Collector, error))
 	InitiatedCollectorsMtx = sync.Mutex{}
