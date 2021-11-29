@@ -47,8 +47,18 @@ func (t TargetCollector) Collect(ch chan<- prometheus.Metric) {
 }
 
 // NewTargetCollector creates a new TargetCollector.
-func NewTargetCollector(exporter exporter.Exporter, logger log.Logger) (*TargetCollector, error) {
+func NewTargetCollector(exporter exporter.Exporter, logger log.Logger, filters ...string) (*TargetCollector, error) {
 	f := make(map[string]bool)
+	for _, filter := range filters {
+		enabled, exist := CollectorState[filter]
+		if !exist {
+			return nil, fmt.Errorf("missing collector: %s", filter)
+		}
+		if !*enabled {
+			return nil, fmt.Errorf("disabled collector: %s", filter)
+		}
+		f[filter] = true
+	}
 	collectors := make(map[string]required.Collector)
 	InitiatedCollectorsMtx.Lock()
 	defer InitiatedCollectorsMtx.Unlock()

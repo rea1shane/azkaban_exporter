@@ -59,7 +59,7 @@ func enter(exporter required.Exporter) {
 		_ = level.Warn(logger).Log("msg", exporter.MonitorTargetName+" Exporter is running as root user. This exporter is designed to run as unpriviledged user, root is not required.")
 	}
 
-	http.Handle(*metricsPath, prometheus.NewPrometheusHandler(exporterInfo, !*disableExporterMetrics, *maxRequests, logger))
+	http.Handle(*metricsPath, prometheus.NewHandler(exporterInfo, !*disableExporterMetrics, *maxRequests, logger))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`<html>
 			<head><title>` + exporter.MonitorTargetName + ` Exporter</title></head>
@@ -70,6 +70,7 @@ func enter(exporter required.Exporter) {
 			</html>`))
 	})
 
+	_ = level.Info(logger).Log("msg", "Listening on", "address", *listenAddress)
 	server := &http.Server{Addr: *listenAddress}
 	if err := web.ListenAndServe(server, *configFile, logger); err != nil {
 		_ = level.Error(logger).Log("err", err)

@@ -24,7 +24,7 @@ type Handler struct {
 	Exporter                exporter.Exporter
 }
 
-func NewPrometheusHandler(exporter exporter.Exporter, includeExporterMetrics bool, maxRequests int, logger log.Logger) *Handler {
+func NewHandler(exporter exporter.Exporter, includeExporterMetrics bool, maxRequests int, logger log.Logger) *Handler {
 	h := &Handler{
 		ExporterMetricsRegistry: prometheus.NewRegistry(),
 		IncludeExporterMetrics:  includeExporterMetrics,
@@ -67,9 +67,12 @@ func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	filteredHandler.ServeHTTP(writer, request)
 }
 
-// InnerHandler create a http.Handler in Handler
+// InnerHandler is used to create both the one unfiltered http.Handler to be
+// wrapped by the outer Handler and also the filtered handlers created on the
+// fly. The former is accomplished by calling InnerHandler without any arguments
+// (in which case it will log all the collectors enabled via command-line flags).
 func (h *Handler) InnerHandler(filters ...string) (http.Handler, error) {
-	targetCollector, err := NewTargetCollector(h.Exporter, h.Logger)
+	targetCollector, err := NewTargetCollector(h.Exporter, h.Logger, filters...)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create collector: %s", err)
 	}
