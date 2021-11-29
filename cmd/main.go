@@ -1,7 +1,7 @@
 package main
 
 import (
-	"azkaban_exporter/azkaban"
+	exporterinfo "azkaban_exporter/pkg/exporter"
 	"azkaban_exporter/pkg/prometheus"
 	"azkaban_exporter/required"
 	"fmt"
@@ -14,9 +14,14 @@ import (
 	"net/http"
 	"os"
 	"os/user"
+	"strings"
 )
 
-func enter(exporter required.Exporter, target required.Target) {
+func enter(exporter required.Exporter) {
+	exporterInfo := exporterinfo.Exporter{
+		Namespace:    strings.ToLower(exporter.MonitorTargetName),
+		ExporterName: strings.ToLower(exporter.MonitorTargetName) + "_exporter",
+	}
 	var (
 		listenAddress = kingpin.Flag(
 			"web.listen-address",
@@ -42,24 +47,24 @@ func enter(exporter required.Exporter, target required.Target) {
 
 	promlogConfig := &promlog.Config{}
 	flag.AddFlags(kingpin.CommandLine, promlogConfig)
-	kingpin.Version(version.Print(exporter.AppName))
+	kingpin.Version(version.Print(exporterInfo.ExporterName))
 	kingpin.CommandLine.UsageWriter(os.Stdout)
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 	logger := promlog.New(promlogConfig)
 
-	_ = level.Info(logger).Log("msg", "Starting "+exporter.AppName, "version", version.Info())
+	_ = level.Info(logger).Log("msg", "Starting "+exporterInfo.ExporterName, "version", version.Info())
 	_ = level.Info(logger).Log("msg", "Build context", "build_context", version.BuildContext())
 	if userCurrent, err := user.Current(); err == nil && userCurrent.Uid == "0" {
-		_ = level.Warn(logger).Log("msg", exporter.TargetName+" Exporter is running as root user. This exporter is designed to run as unpriviledged user, root is not required.")
+		_ = level.Warn(logger).Log("msg", exporter.MonitorTargetName+" Exporter is running as root user. This exporter is designed to run as unpriviledged user, root is not required.")
 	}
 
-	http.Handle(*metricsPath, prometheus.NewPrometheusHandler(!*disableExporterMetrics, *maxRequests, logger, exporter, target))
+	http.Handle(*metricsPath, prometheus.NewPrometheusHandler(exporterInfo, !*disableExporterMetrics, *maxRequests, logger))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`<html>
-			<head><title>` + exporter.TargetName + ` Exporter</title></head>
+			<head><title>` + exporter.MonitorTargetName + ` Exporter</title></head>
 			<body>
-			<h1>` + exporter.TargetName + ` Exporter</h1>
+			<h1>` + exporter.MonitorTargetName + ` Exporter</h1>
 			<p><a href="` + *metricsPath + `">Metrics</a></p>
 			</body>
 			</html>`))
@@ -74,17 +79,8 @@ func enter(exporter required.Exporter, target required.Target) {
 
 func main() {
 	azkabanExporter := required.Exporter{
-		AppName:     "azkaban_exporter",
-		TargetName:  "Azkaban",
-		DefaultPort: 9900,
+		MonitorTargetName: "Azkaban",
+		DefaultPort:       9900,
 	}
-	a := azkaban.Azkaban{
-		Namespace: "azkaban",
-		Address: []string{
-			"127.0.0.1:10000",
-			"127.0.0.2:10000",
-			"127.0.0.3:10000",
-		},
-	}
-	enter(azkabanExporter, a)
+	enter(azkabanExporter)
 }

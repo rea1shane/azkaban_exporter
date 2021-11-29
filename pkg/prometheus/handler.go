@@ -1,7 +1,7 @@
 package prometheus
 
 import (
-	"azkaban_exporter/required"
+	"azkaban_exporter/pkg/exporter"
 	"fmt"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -21,18 +21,16 @@ type Handler struct {
 	IncludeExporterMetrics  bool
 	MaxRequests             int
 	Logger                  log.Logger
-	Exporter                required.Exporter
-	Target                  required.Target
+	Exporter                exporter.Exporter
 }
 
-func NewPrometheusHandler(includeExporterMetrics bool, maxRequests int, logger log.Logger, exporter required.Exporter, target required.Target) *Handler {
+func NewPrometheusHandler(exporter exporter.Exporter, includeExporterMetrics bool, maxRequests int, logger log.Logger) *Handler {
 	h := &Handler{
 		ExporterMetricsRegistry: prometheus.NewRegistry(),
 		IncludeExporterMetrics:  includeExporterMetrics,
 		MaxRequests:             maxRequests,
 		Logger:                  logger,
 		Exporter:                exporter,
-		Target:                  target,
 	}
 	if h.IncludeExporterMetrics {
 		h.ExporterMetricsRegistry.MustRegister(
@@ -71,7 +69,7 @@ func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 
 // InnerHandler create a http.Handler in Handler
 func (h *Handler) InnerHandler(filters ...string) (http.Handler, error) {
-	targetCollector, err := NewTargetCollector(h.Exporter, h.Target, h.Logger)
+	targetCollector, err := NewTargetCollector(h.Exporter, h.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create collector: %s", err)
 	}
@@ -91,9 +89,9 @@ func (h *Handler) InnerHandler(filters ...string) (http.Handler, error) {
 	}
 
 	r := prometheus.NewRegistry()
-	r.MustRegister(version.NewCollector(h.Exporter.AppName))
+	r.MustRegister(version.NewCollector(h.Exporter.ExporterName))
 	if err := r.Register(targetCollector); err != nil {
-		return nil, fmt.Errorf("couldn't register "+h.Target.GetNamespace()+" collector: %s", err)
+		return nil, fmt.Errorf("couldn't register "+h.Exporter.Namespace+" collector: %s", err)
 	}
 	handler := promhttp.HandlerFor(
 		prometheus.Gatherers{h.ExporterMetricsRegistry, r},

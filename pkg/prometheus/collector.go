@@ -1,6 +1,7 @@
 package prometheus
 
 import (
+	"azkaban_exporter/pkg/exporter"
 	"azkaban_exporter/required"
 	"errors"
 	"fmt"
@@ -25,8 +26,7 @@ type TargetCollector struct {
 	Logger             log.Logger
 	ScrapeDurationDesc *prometheus.Desc
 	ScrapeSuccessDesc  *prometheus.Desc
-	Exporter           required.Exporter
-	Target             required.Target
+	Exporter           exporter.Exporter
 }
 
 func (t TargetCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -47,7 +47,7 @@ func (t TargetCollector) Collect(ch chan<- prometheus.Metric) {
 }
 
 // NewTargetCollector creates a new TargetCollector.
-func NewTargetCollector(exporter required.Exporter, target required.Target, logger log.Logger) (*TargetCollector, error) {
+func NewTargetCollector(exporter exporter.Exporter, logger log.Logger) (*TargetCollector, error) {
 	f := make(map[string]bool)
 	collectors := make(map[string]required.Collector)
 	InitiatedCollectorsMtx.Lock()
@@ -71,19 +71,18 @@ func NewTargetCollector(exporter required.Exporter, target required.Target, logg
 		Collectors: InitiatedCollectors,
 		Logger:     logger,
 		ScrapeDurationDesc: prometheus.NewDesc(
-			prometheus.BuildFQName(target.GetNamespace(), "scrape", "collector_duration_seconds"),
-			exporter.AppName+": Duration of a collector scrape.",
+			prometheus.BuildFQName(exporter.Namespace, "scrape", "collector_duration_seconds"),
+			exporter.ExporterName+": Duration of a collector scrape.",
 			[]string{"collector"},
 			nil,
 		),
 		ScrapeSuccessDesc: prometheus.NewDesc(
-			prometheus.BuildFQName(target.GetNamespace(), "scrape", "collector_success"),
-			exporter.AppName+": Whether a collector succeeded.",
+			prometheus.BuildFQName(exporter.Namespace, "scrape", "collector_success"),
+			exporter.ExporterName+": Whether a collector succeeded.",
 			[]string{"collector"},
 			nil,
 		),
 		Exporter: exporter,
-		Target:   target,
 	}, nil
 }
 
