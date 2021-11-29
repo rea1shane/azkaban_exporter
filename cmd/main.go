@@ -71,6 +71,7 @@ func main() {
 		DefaultPort: 9900,
 	}
 	a := azkaban.Azkaban{
+		Namespace: "azkaban",
 		Address: []string{
 			"127.0.0.1:10000",
 			"127.0.0.2:10000",
