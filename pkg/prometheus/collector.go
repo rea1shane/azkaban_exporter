@@ -14,11 +14,11 @@ import (
 )
 
 var (
-	Factories              = make(map[string]func(logger log.Logger) (required.Collector, error)) // Factories records all collector's construction method
-	InitiatedCollectorsMtx = sync.Mutex{}                                                         // InitiatedCollectorsMtx avoid thread conflicts
-	InitiatedCollectors    = make(map[string]required.Collector)                                  // InitiatedCollectors record the collectors that have been initialized in the method NewTargetCollector (To reduce the method call)
-	CollectorState         = make(map[string]*bool)                                               // CollectorState records all collector's default state (enable or disable)
-	ForcedCollectors       = map[string]bool{}                                                    // ForcedCollectors collectors which have been explicitly enabled or disabled
+	Factories              = make(map[string]func(namespace string, logger log.Logger) (required.Collector, error)) // Factories records all collector's construction method
+	InitiatedCollectorsMtx = sync.Mutex{}                                                                           // InitiatedCollectorsMtx avoid thread conflicts
+	InitiatedCollectors    = make(map[string]required.Collector)                                                    // InitiatedCollectors record the collectors that have been initialized in the method NewTargetCollector (To reduce the collector's construction method call)
+	CollectorState         = make(map[string]*bool)                                                                 // CollectorState records all collector's default state (enable or disable)
+	ForcedCollectors       = map[string]bool{}                                                                      // ForcedCollectors collectors which have been explicitly enabled or disabled
 )
 
 type TargetCollector struct {
@@ -26,7 +26,6 @@ type TargetCollector struct {
 	Logger             log.Logger
 	ScrapeDurationDesc *prometheus.Desc
 	ScrapeSuccessDesc  *prometheus.Desc
-	Exporter           exporter.Exporter
 }
 
 func (t TargetCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -69,7 +68,7 @@ func NewTargetCollector(exporter exporter.Exporter, logger log.Logger, filters .
 		if collector, ok := InitiatedCollectors[key]; ok {
 			collectors[key] = collector
 		} else {
-			collector, err := Factories[key](log.With(logger, "collector", key))
+			collector, err := Factories[key](exporter.Namespace, log.With(logger, "collector", key))
 			if err != nil {
 				return nil, err
 			}
@@ -92,11 +91,10 @@ func NewTargetCollector(exporter exporter.Exporter, logger log.Logger, filters .
 			[]string{"collector"},
 			nil,
 		),
-		Exporter: exporter,
 	}, nil
 }
 
-func RegisterCollector(collector string, isDefaultEnabled bool, factory func(logger log.Logger) (required.Collector, error)) {
+func RegisterCollector(collector string, isDefaultEnabled bool, factory func(namespace string, logger log.Logger) (required.Collector, error)) {
 	var helpDefaultState string
 	if isDefaultEnabled {
 		helpDefaultState = "enabled"
