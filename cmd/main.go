@@ -88,6 +88,7 @@ func enter(exporter required.Exporter) {
 //}
 
 func main() {
-	az := azkaban.GetInstance()
-	fmt.Printf("%+v", az)
+	az := azkaban.GetAzkaban()
+	az.Login()
+	fmt.Printf("%+v\n", az)
 }
