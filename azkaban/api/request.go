@@ -10,63 +10,64 @@ import (
 
 var singletonHttp = util.GetSingletonHttp()
 
-// Login
+// Login return azkaban.Session's Id
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#authenticate
-// TODO 判断 session.id 是否过期, 没有过期的话跳过执行
-func Login(url string, users []azkaban.User) []azkaban.User {
+// TODO 传入一个 time.Time 检测 session.id 是否过期, 没有过期的话跳过执行
+// TODO 返回一个 time.Time 代表登录时间
+func Login(serverUrl string, user azkaban.User) (string, error) {
 	method := "POST"
-	for index, user := range users {
-		response := LoginResponse{}
-		payload := strings.NewReader("action=login&username=" + user.Username + "&password=" + user.Password)
-		req, err := http.NewRequest(method, url, payload)
-		if err != nil {
-			panic(err)
-		}
-		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-		singletonHttp.Request(req, &response)
-		users[index].SessionId = response.Sessionid
+	response := LoginResponse{}
+	payload := strings.NewReader("action=login&username=" + user.Username + "&password=" + user.Password)
+	req, err := http.NewRequest(method, serverUrl, payload)
+	if err != nil {
+		return "", err
 	}
-	return users
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	err = singletonHttp.Request(req, &response)
+	if err != nil {
+		return "", err
+	}
+	return response.SessionId, nil
 }
 
 // GetProjects
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-user-projects
-func GetProjects(url string, users []azkaban.User) []azkaban.Project {
+func GetProjects(serverUrl string, sessionId string) ([]azkaban.Project, error) {
 	method := "GET"
-	var projects []azkaban.Project
-	for _, user := range users {
-		response := ProjectsResponse{}
-		url := url + "/index?ajax=fetchuserprojects&session.id=" + user.SessionId
-		req, err := http.NewRequest(method, url, nil)
-		if err != nil {
-			fmt.Println(err)
-			return nil
-		}
-		singletonHttp.Request(req, &response)
-		for _, project := range response.Projects {
-			projects = append(projects, project)
-		}
+	response := ProjectsResponse{}
+	url := serverUrl + "/index?ajax=fetchuserprojects&session.id=" + sessionId
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
 	}
-	return projects
+	err = singletonHttp.Request(req, &response)
+	if err != nil {
+		return nil, err
+	}
+	return response.Projects, nil
 }
 
 // GetFlows
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-flows-of-a-project
-func GetFlows(url string, projects []azkaban.Project) []azkaban.Flow {
+func GetFlows(serverUrl string, sessionId string, projects []azkaban.Project) ([]azkaban.Flow, error) {
 	method := "GET"
 	var flows []azkaban.Flow
 	for _, project := range projects {
 		response := ProjectFlowsResponse{}
-		url := url + "/manager?ajax=fetchprojectflows&session.id=" + "3b311335-4716-45fb-9814-b2a4710297ac" + "&project=" + project.ProjectName
+		url := serverUrl + "/manager?ajax=fetchprojectflows&session.id=" + sessionId + "&project=" + project.ProjectName
 		req, err := http.NewRequest(method, url, nil)
 		if err != nil {
 			fmt.Println(err)
-			return nil
+			return nil, err
 		}
-		singletonHttp.Request(req, &response)
+		err = singletonHttp.Request(req, &response)
+		if err != nil {
+			return nil, err
+		}
 		for _, flow := range response.Flows {
 			flows = append(flows, flow)
 		}
 	}
-	return flows
+	return flows, nil
 }

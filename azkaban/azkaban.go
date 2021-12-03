@@ -5,6 +5,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"sync"
+	"time"
 )
 
 type Server struct {
@@ -14,10 +15,18 @@ type Server struct {
 	Url      string
 }
 
+// Session
+// TODO 逾期自动续期
+// TODO api.Login 后记录时间
+type Session struct {
+	Id         string // Id 有效期 24 小时
+	ExpiryTime time.Time
+}
+
 type User struct {
-	Username  string `yaml:"username"`
-	Password  string `yaml:"password"`
-	SessionId string // SessionId 有效期 24 小时 // TODO 逾期自动续期
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+	Session  Session
 }
 
 type Project struct {
@@ -33,12 +42,9 @@ type Flow struct {
 	FlowId string `json:"flowId"`
 }
 
-// Azkaban
-// TODO 更改为单个用户, 减少请求次数, session 检测成本
 type Azkaban struct {
 	Server Server `yaml:"server"`
-	Users  []User `yaml:"users"`
-	//LoginTime time.Time
+	User   User   `yaml:"user"`
 }
 
 var instance *Azkaban

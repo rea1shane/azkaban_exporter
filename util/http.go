@@ -2,7 +2,6 @@ package util
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -25,11 +24,10 @@ func GetSingletonHttp() *SingletonHttp {
 	return instance
 }
 
-func (h *SingletonHttp) Request(req *http.Request, responseStruct interface{}) {
+func (h *SingletonHttp) Request(req *http.Request, responseStruct interface{}) error {
 	res, err := h.Client.Do(req)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
@@ -37,10 +35,10 @@ func (h *SingletonHttp) Request(req *http.Request, responseStruct interface{}) {
 
 	responseBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 	if err := json.Unmarshal(responseBody, &responseStruct); err != nil {
-		fmt.Println(err.Error())
+		return err
 	}
+	return nil
 }
