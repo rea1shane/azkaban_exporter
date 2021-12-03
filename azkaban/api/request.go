@@ -9,11 +9,11 @@ import (
 
 var singletonHttp = util.GetSingletonHttp()
 
-// Login return azkaban.Session's Id
+// Authenticate return azkaban.Session's Id
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#authenticate
 // TODO 传入一个 time.Time 检测 session.id 是否过期, 没有过期的话跳过执行
 // TODO 返回一个 time.Time 代表登录时间
-func Login(serverUrl string, user azkaban.User) (string, error) {
+func Authenticate(serverUrl string, user azkaban.User) (string, error) {
 	method := "POST"
 	response := LoginResponse{}
 	payload := strings.NewReader("action=login&username=" + user.Username + "&password=" + user.Password)
@@ -29,9 +29,9 @@ func Login(serverUrl string, user azkaban.User) (string, error) {
 	return response.SessionId, nil
 }
 
-// GetProjects
+// FetchUserProjects
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-user-projects
-func GetProjects(serverUrl string, sessionId string) ([]azkaban.Project, error) {
+func FetchUserProjects(serverUrl string, sessionId string) ([]azkaban.Project, error) {
 	method := "GET"
 	response := ProjectsResponse{}
 	url := serverUrl + "/index?ajax=fetchuserprojects&session.id=" + sessionId
@@ -46,9 +46,9 @@ func GetProjects(serverUrl string, sessionId string) ([]azkaban.Project, error) 
 	return response.Projects, nil
 }
 
-// GetFlows
+// FetchFlowsOfAProject
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-flows-of-a-project
-func GetFlows(serverUrl string, sessionId string, project azkaban.Project) ([]azkaban.Flow, error) {
+func FetchFlowsOfAProject(serverUrl string, sessionId string, project azkaban.Project) ([]azkaban.Flow, error) {
 	method := "GET"
 	response := ProjectFlowsResponse{}
 	url := serverUrl + "/manager?ajax=fetchprojectflows&session.id=" + sessionId + "&project=" + project.ProjectName

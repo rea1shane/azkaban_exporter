@@ -90,19 +90,19 @@ func enter(exporter required.Exporter) {
 
 func main() {
 	az := azkaban.GetAzkaban()
-	sessionId, err := api.Login(az.Server.Url, az.User)
+	sessionId, err := api.Authenticate(az.Server.Url, az.User)
 	if err != nil {
 		panic(err)
 	} else {
 		az.User.Session.Id = sessionId
 	}
-	projects, err := api.GetProjects(az.Server.Url, az.User.Session.Id)
+	projects, err := api.FetchUserProjects(az.Server.Url, az.User.Session.Id)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("%+v\n\n", projects)
 	for index, project := range projects {
-		flows, err := api.GetFlows(az.Server.Url, az.User.Session.Id, project)
+		flows, err := api.FetchFlowsOfAProject(az.Server.Url, az.User.Session.Id, project)
 		if err != nil {
 			panic(err)
 		}
