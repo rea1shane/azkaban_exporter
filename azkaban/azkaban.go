@@ -2,12 +2,11 @@ package azkaban
 
 import (
 	"azkaban_exporter/util"
-	"encoding/json"
 	"fmt"
 	"gopkg.in/yaml.v2"
-	"io"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -29,7 +28,7 @@ type User struct {
 
 type Azkaban struct {
 	Server Server `yaml:"server"`
-	User   User   `yaml:"user"`
+	Users  []User `yaml:"users"`
 }
 
 var instance *Azkaban
@@ -54,32 +53,36 @@ func GetAzkaban() *Azkaban {
 }
 
 func (a *Azkaban) Login() {
-	response := LoginResponse{}
 	method := "POST"
-	payload := strings.NewReader("action=login&username=" + a.User.Username + "&password=" + a.User.Password)
-	req, err := http.NewRequest(method, a.Server.url, payload)
-	if err != nil {
-		fmt.Println(err)
-		return
+	for index, user := range a.Users {
+		response := LoginResponse{}
+		payload := strings.NewReader("action=login&username=" + user.Username + "&password=" + user.Password)
+		req, err := http.NewRequest(method, a.Server.url, payload)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		singletonHttp.Request(req, &response)
+		a.Users[index].sessionId = response.Sessionid
 	}
+}
 
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	res, err := singletonHttp.Client.Do(req)
-	if err != nil {
-		fmt.Println(err)
-		return
+func (a Azkaban) GetProjectIds() []string {
+	method := "GET"
+	var ids []string
+	for _, user := range a.Users {
+		response := GetProjectsResponse{}
+		url := a.Server.url + "/index?ajax=fetchuserprojects&session.id=" + user.sessionId
+		req, err := http.NewRequest(method, url, nil)
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+		singletonHttp.Request(req, &response)
+		for _, project := range response.Projects {
+			ids = append(ids, strconv.Itoa(project.ProjectId))
+		}
 	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(res.Body)
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	if err := json.Unmarshal(body, &response); err != nil {
-		fmt.Println(err.Error())
-	}
-	a.User.sessionId = response.Sessionid
+	return ids
 }

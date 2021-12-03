@@ -90,5 +90,7 @@ func enter(exporter required.Exporter) {
 func main() {
 	az := azkaban.GetAzkaban()
 	az.Login()
-	fmt.Printf("%+v\n", az)
+	fmt.Printf("%+v\n", *az)
+	ids := az.GetProjectIds()
+	fmt.Println(ids)
 }
