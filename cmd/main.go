@@ -2,6 +2,7 @@ package main
 
 import (
 	"azkaban_exporter/azkaban"
+	"azkaban_exporter/azkaban/api"
 	exporterinfo "azkaban_exporter/pkg/exporter"
 	"azkaban_exporter/pkg/prometheus"
 	"azkaban_exporter/required"
@@ -89,8 +90,9 @@ func enter(exporter required.Exporter) {
 
 func main() {
 	az := azkaban.GetAzkaban()
-	az.Login()
-	fmt.Printf("%+v\n", *az)
-	ids := az.GetProjectIds()
-	fmt.Println(ids)
+	az.Users = api.Login(az.Server.Url, az.Users)
+	projects := api.GetProjects(az.Server.Url, az.Users)
+	fmt.Printf("%+v\n\n", projects)
+	flows := api.GetFlows(az.Server.Url, projects)
+	fmt.Printf("%+v\n", flows)
 }
