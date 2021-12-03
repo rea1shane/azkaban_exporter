@@ -3,7 +3,6 @@ package api
 import (
 	"azkaban_exporter/azkaban"
 	"azkaban_exporter/util"
-	"fmt"
 	"net/http"
 	"strings"
 )
@@ -38,7 +37,6 @@ func GetProjects(serverUrl string, sessionId string) ([]azkaban.Project, error) 
 	url := serverUrl + "/index?ajax=fetchuserprojects&session.id=" + sessionId
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 	err = singletonHttp.Request(req, &response)
@@ -50,24 +48,17 @@ func GetProjects(serverUrl string, sessionId string) ([]azkaban.Project, error) 
 
 // GetFlows
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-flows-of-a-project
-func GetFlows(serverUrl string, sessionId string, projects []azkaban.Project) ([]azkaban.Flow, error) {
+func GetFlows(serverUrl string, sessionId string, project azkaban.Project) ([]azkaban.Flow, error) {
 	method := "GET"
-	var flows []azkaban.Flow
-	for _, project := range projects {
-		response := ProjectFlowsResponse{}
-		url := serverUrl + "/manager?ajax=fetchprojectflows&session.id=" + sessionId + "&project=" + project.ProjectName
-		req, err := http.NewRequest(method, url, nil)
-		if err != nil {
-			fmt.Println(err)
-			return nil, err
-		}
-		err = singletonHttp.Request(req, &response)
-		if err != nil {
-			return nil, err
-		}
-		for _, flow := range response.Flows {
-			flows = append(flows, flow)
-		}
+	response := ProjectFlowsResponse{}
+	url := serverUrl + "/manager?ajax=fetchprojectflows&session.id=" + sessionId + "&project=" + project.ProjectName
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return nil, err
 	}
-	return flows, nil
+	err = singletonHttp.Request(req, &response)
+	if err != nil {
+		return nil, err
+	}
+	return response.Flows, nil
 }

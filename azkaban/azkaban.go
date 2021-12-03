@@ -36,6 +36,7 @@ type Project struct {
 	//CreatedTime time.Time `json:"createdTime"`
 	//userPermissions
 	//groupPermissions
+	Flows []Flow
 }
 
 type Flow struct {

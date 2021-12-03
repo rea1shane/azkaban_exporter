@@ -101,9 +101,12 @@ func main() {
 		panic(err)
 	}
 	fmt.Printf("%+v\n\n", projects)
-	flows, err := api.GetFlows(az.Server.Url, az.User.Session.Id, projects)
-	if err != nil {
-		panic(err)
+	for index, project := range projects {
+		flows, err := api.GetFlows(az.Server.Url, az.User.Session.Id, project)
+		if err != nil {
+			panic(err)
+		}
+		projects[index].Flows = flows
 	}
-	fmt.Printf("%+v\n", flows)
+	fmt.Printf("%+v\n", projects)
 }
