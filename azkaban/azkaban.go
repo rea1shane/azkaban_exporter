@@ -29,25 +29,6 @@ type User struct {
 	Session  Session
 }
 
-type Project struct {
-	ProjectId   int    `json:"projectId"`
-	ProjectName string `json:"projectName"`
-	CreatedBy   string `json:"createdBy"`
-	//CreatedTime time.Time `json:"createdTime"`
-	//userPermissions
-	//groupPermissions
-	Flows []Flow
-}
-
-type Flow struct {
-	FlowId            string `json:"flowId"`
-	RunningExecutions Executions
-}
-
-type Executions struct {
-	ExecIds []int `json:"execIds"`
-}
-
 type Azkaban struct {
 	Server Server `yaml:"server"`
 	User   User   `yaml:"user"`

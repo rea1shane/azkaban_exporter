@@ -110,13 +110,25 @@ func main() {
 	}
 	fmt.Printf("%+v\n\n", projects)
 
-	for index, project := range projects {
-		for index2, flow := range project.Flows {
+	var runningExecIds []int
+	for _, project := range projects {
+		for _, flow := range project.Flows {
 			runningExecutions, err := api.FetchRunningExecutionsOfAFlow(az.Server.Url, az.User.Session.SessionId, project.ProjectName, flow.FlowId)
 			if err != nil {
 				panic(err)
 			}
-			projects[index].Flows[index2].RunningExecutions = runningExecutions
+			runningExecIds = append(runningExecIds, runningExecutions.ExecIds...)
 		}
+	}
+	fmt.Printf("%+v\n\n", runningExecIds)
+
+	for _, execId := range runningExecIds {
+		execution, err := api.FetchAFlowExecution(az.Server.Url, az.User.Session.SessionId, execId)
+		if err != nil {
+			fmt.Println("cuole")
+			fmt.Println(err.Error())
+			panic(err)
+		}
+		fmt.Printf("%+v\n\n", execution)
 	}
 }

@@ -1,9 +1,9 @@
 package api
 
 import (
-	"azkaban_exporter/azkaban"
 	"azkaban_exporter/util"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -31,7 +31,7 @@ func Authenticate(serverUrl string, username string, password string) (string, e
 
 // FetchUserProjects
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-user-projects
-func FetchUserProjects(serverUrl string, sessionId string) ([]azkaban.Project, error) {
+func FetchUserProjects(serverUrl string, sessionId string) ([]Project, error) {
 	method := "GET"
 	response := FetchUserProjectsResponse{}
 	url := serverUrl + "/index?ajax=fetchuserprojects&session.id=" + sessionId
@@ -48,7 +48,7 @@ func FetchUserProjects(serverUrl string, sessionId string) ([]azkaban.Project, e
 
 // FetchFlowsOfAProject
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-flows-of-a-project
-func FetchFlowsOfAProject(serverUrl string, sessionId string, projectName string) ([]azkaban.Flow, error) {
+func FetchFlowsOfAProject(serverUrl string, sessionId string, projectName string) ([]Flow, error) {
 	method := "GET"
 	response := FetchFlowsOfAProjectResponse{}
 	url := serverUrl + "/manager?ajax=fetchprojectflows&session.id=" + sessionId + "&project=" + projectName
@@ -63,17 +63,36 @@ func FetchFlowsOfAProject(serverUrl string, sessionId string, projectName string
 	return response.Flows, nil
 }
 
-func FetchRunningExecutionsOfAFlow(serverUrl string, sessionId string, projectName string, flowId string) (azkaban.Executions, error) {
+// FetchRunningExecutionsOfAFlow
+// doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-running-executions-of-a-flow
+func FetchRunningExecutionsOfAFlow(serverUrl string, sessionId string, projectName string, flowId string) (ExecutionsResponse, error) {
 	method := "GET"
-	response := azkaban.Executions{}
+	response := ExecutionsResponse{}
 	url := serverUrl + "/executor?ajax=getRunning&session.id=" + sessionId + "&project=" + projectName + "&flow=" + flowId
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
-		return azkaban.Executions{}, err
+		return ExecutionsResponse{}, err
 	}
 	err = singletonHttp.Request(req, &response)
 	if err != nil {
-		return azkaban.Executions{}, err
+		return ExecutionsResponse{}, err
+	}
+	return response, nil
+}
+
+// FetchAFlowExecution
+// doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-a-flow-execution
+func FetchAFlowExecution(serverUrl string, sessionId string, execid int) (ExecutionInformationResponse, error) {
+	method := "GET"
+	response := ExecutionInformationResponse{}
+	url := serverUrl + "/executor?ajax=fetchexecflow&session.id=" + sessionId + "&execid=" + strconv.Itoa(execid)
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return ExecutionInformationResponse{}, err
+	}
+	err = singletonHttp.Request(req, &response)
+	if err != nil {
+		return ExecutionInformationResponse{}, err
 	}
 	return response, nil
 }
