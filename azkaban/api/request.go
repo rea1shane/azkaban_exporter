@@ -9,14 +9,14 @@ import (
 
 var singletonHttp = util.GetSingletonHttp()
 
-// Authenticate return azkaban.Session's Id
+// Authenticate return azkaban.Session's SessionId
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#authenticate
 // TODO 传入一个 time.Time 检测 session.id 是否过期, 没有过期的话跳过执行
 // TODO 返回一个 time.Time 代表登录时间
-func Authenticate(serverUrl string, user azkaban.User) (string, error) {
+func Authenticate(serverUrl string, username string, password string) (string, error) {
 	method := "POST"
-	response := LoginResponse{}
-	payload := strings.NewReader("action=login&username=" + user.Username + "&password=" + user.Password)
+	response := AuthenticateResponse{}
+	payload := strings.NewReader("action=login&username=" + username + "&password=" + password)
 	req, err := http.NewRequest(method, serverUrl, payload)
 	if err != nil {
 		return "", err
@@ -33,7 +33,7 @@ func Authenticate(serverUrl string, user azkaban.User) (string, error) {
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-user-projects
 func FetchUserProjects(serverUrl string, sessionId string) ([]azkaban.Project, error) {
 	method := "GET"
-	response := ProjectsResponse{}
+	response := FetchUserProjectsResponse{}
 	url := serverUrl + "/index?ajax=fetchuserprojects&session.id=" + sessionId
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
@@ -48,10 +48,10 @@ func FetchUserProjects(serverUrl string, sessionId string) ([]azkaban.Project, e
 
 // FetchFlowsOfAProject
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-flows-of-a-project
-func FetchFlowsOfAProject(serverUrl string, sessionId string, project azkaban.Project) ([]azkaban.Flow, error) {
+func FetchFlowsOfAProject(serverUrl string, sessionId string, projectName string) ([]azkaban.Flow, error) {
 	method := "GET"
-	response := ProjectFlowsResponse{}
-	url := serverUrl + "/manager?ajax=fetchprojectflows&session.id=" + sessionId + "&project=" + project.ProjectName
+	response := FetchFlowsOfAProjectResponse{}
+	url := serverUrl + "/manager?ajax=fetchprojectflows&session.id=" + sessionId + "&project=" + projectName
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		return nil, err
@@ -61,4 +61,19 @@ func FetchFlowsOfAProject(serverUrl string, sessionId string, project azkaban.Pr
 		return nil, err
 	}
 	return response.Flows, nil
+}
+
+func FetchRunningExecutionsOfAFlow(serverUrl string, sessionId string, projectName string, flowId string) (azkaban.Executions, error) {
+	method := "GET"
+	response := azkaban.Executions{}
+	url := serverUrl + "/executor?ajax=getRunning&session.id=" + sessionId + "&project=" + projectName + "&flow=" + flowId
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return azkaban.Executions{}, err
+	}
+	err = singletonHttp.Request(req, &response)
+	if err != nil {
+		return azkaban.Executions{}, err
+	}
+	return response, nil
 }

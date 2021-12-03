@@ -19,7 +19,7 @@ type Server struct {
 // TODO 逾期自动续期
 // TODO api.Login 后记录时间
 type Session struct {
-	Id         string // Id 有效期 24 小时
+	SessionId  string // SessionId 有效期 24 小时
 	ExpiryTime time.Time
 }
 
@@ -40,7 +40,12 @@ type Project struct {
 }
 
 type Flow struct {
-	FlowId string `json:"flowId"`
+	FlowId            string `json:"flowId"`
+	RunningExecutions Executions
+}
+
+type Executions struct {
+	ExecIds []int `json:"execIds"`
 }
 
 type Azkaban struct {

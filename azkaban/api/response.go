@@ -2,18 +2,18 @@ package api
 
 import "azkaban_exporter/azkaban"
 
-type LoginResponse struct {
+type AuthenticateResponse struct {
 	SessionId string `json:"session.id"`
 	Status    string `json:"status"`
 	Error     string `json:"error"`
 }
 
-type ProjectsResponse struct {
+type FetchUserProjectsResponse struct {
 	Projects []azkaban.Project `json:"projects"`
 	Error    string            `json:"error"`
 }
 
-type ProjectFlowsResponse struct {
+type FetchFlowsOfAProjectResponse struct {
 	ProjectName string         `json:"project"`
 	ProjectId   int            `json:"projectId"`
 	Flows       []azkaban.Flow `json:"flows"`

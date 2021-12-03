@@ -90,23 +90,33 @@ func enter(exporter required.Exporter) {
 
 func main() {
 	az := azkaban.GetAzkaban()
-	sessionId, err := api.Authenticate(az.Server.Url, az.User)
+	sessionId, err := api.Authenticate(az.Server.Url, az.User.Username, az.User.Password)
 	if err != nil {
 		panic(err)
 	} else {
-		az.User.Session.Id = sessionId
+		az.User.Session.SessionId = sessionId
 	}
-	projects, err := api.FetchUserProjects(az.Server.Url, az.User.Session.Id)
+	projects, err := api.FetchUserProjects(az.Server.Url, az.User.Session.SessionId)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("%+v\n\n", projects)
 	for index, project := range projects {
-		flows, err := api.FetchFlowsOfAProject(az.Server.Url, az.User.Session.Id, project)
+		flows, err := api.FetchFlowsOfAProject(az.Server.Url, az.User.Session.SessionId, project.ProjectName)
 		if err != nil {
 			panic(err)
 		}
 		projects[index].Flows = flows
 	}
-	fmt.Printf("%+v\n", projects)
+	fmt.Printf("%+v\n\n", projects)
+
+	for index, project := range projects {
+		for index2, flow := range project.Flows {
+			runningExecutions, err := api.FetchRunningExecutionsOfAFlow(az.Server.Url, az.User.Session.SessionId, project.ProjectName, flow.FlowId)
+			if err != nil {
+				panic(err)
+			}
+			projects[index].Flows[index2].RunningExecutions = runningExecutions
+		}
+	}
 }
