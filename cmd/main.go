@@ -1,7 +1,7 @@
 package main
 
 import (
-	"azkaban_exporter/azkaban"
+	_ "azkaban_exporter/azkaban"
 	exporterinfo "azkaban_exporter/pkg/exporter"
 	"azkaban_exporter/pkg/prometheus"
 	"azkaban_exporter/required"
@@ -79,25 +79,10 @@ func enter(exporter required.Exporter) {
 	}
 }
 
-//func main() {
-//	azkabanExporter := required.Exporter{
-//		MonitorTargetName: "Azkaban",
-//		DefaultPort:       9900,
-//	}
-//	enter(azkabanExporter)
-//}
-
 func main() {
-	az := azkaban.GetAzkaban()
-	ids, err := az.GetRunningExecIds()
-	if err != nil {
-		panic(err)
+	azkabanExporter := required.Exporter{
+		MonitorTargetName: "Azkaban",
+		DefaultPort:       9900,
 	}
-	for _, id := range ids {
-		info, err := az.GetExecInfo(id)
-		if err != nil {
-			return
-		}
-		fmt.Printf("%+v\n\n", info)
-	}
+	enter(azkabanExporter)
 }
