@@ -11,8 +11,6 @@ var singletonHttp = util.GetSingletonHttp()
 
 // Authenticate return azkaban.Session's SessionId
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#authenticate
-// TODO 传入一个 time.Time 检测 session.id 是否过期, 没有过期的话跳过执行
-// TODO 返回一个 time.Time 代表登录时间
 func Authenticate(serverUrl string, username string, password string) (string, error) {
 	method := "POST"
 	response := AuthenticateResponse{}

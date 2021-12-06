@@ -2,7 +2,6 @@ package main
 
 import (
 	"azkaban_exporter/azkaban"
-	"azkaban_exporter/azkaban/api"
 	exporterinfo "azkaban_exporter/pkg/exporter"
 	"azkaban_exporter/pkg/prometheus"
 	"azkaban_exporter/required"
@@ -90,45 +89,15 @@ func enter(exporter required.Exporter) {
 
 func main() {
 	az := azkaban.GetAzkaban()
-	sessionId, err := api.Authenticate(az.Server.Url, az.User.Username, az.User.Password)
-	if err != nil {
-		panic(err)
-	} else {
-		az.User.Session.SessionId = sessionId
-	}
-	projects, err := api.FetchUserProjects(az.Server.Url, az.User.Session.SessionId)
+	ids, err := az.GetRunningExecIds()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%+v\n\n", projects)
-	for index, project := range projects {
-		flows, err := api.FetchFlowsOfAProject(az.Server.Url, az.User.Session.SessionId, project.ProjectName)
+	for _, id := range ids {
+		info, err := az.GetExecInfo(id)
 		if err != nil {
-			panic(err)
+			return
 		}
-		projects[index].Flows = flows
-	}
-	fmt.Printf("%+v\n\n", projects)
-
-	var runningExecIds []int
-	for _, project := range projects {
-		for _, flow := range project.Flows {
-			runningExecutions, err := api.FetchRunningExecutionsOfAFlow(az.Server.Url, az.User.Session.SessionId, project.ProjectName, flow.FlowId)
-			if err != nil {
-				panic(err)
-			}
-			runningExecIds = append(runningExecIds, runningExecutions.ExecIds...)
-		}
-	}
-	fmt.Printf("%+v\n\n", runningExecIds)
-
-	for _, execId := range runningExecIds {
-		execution, err := api.FetchAFlowExecution(az.Server.Url, az.User.Session.SessionId, execId)
-		if err != nil {
-			fmt.Println("cuole")
-			fmt.Println(err.Error())
-			panic(err)
-		}
-		fmt.Printf("%+v\n\n", execution)
+		fmt.Printf("%+v\n\n", info)
 	}
 }
