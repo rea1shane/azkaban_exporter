@@ -7,10 +7,9 @@ type Project struct {
 	ProjectId   int    `json:"projectId"`
 	ProjectName string `json:"projectName"`
 	CreatedBy   string `json:"createdBy"`
-	//CreatedTime time.Time `json:"createdTime"`
+	//CreatedTime int64  `json:"createdTime"`
 	//userPermissions
 	//groupPermissions
-	Flows []Flow
 }
 
 type Flow struct {

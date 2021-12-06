@@ -67,6 +67,7 @@ func (a *Azkaban) auth() error {
 }
 
 func (a *Azkaban) GetRunningExecIds() ([]int, error) {
+	var runningExecIds []int
 	err := a.auth()
 	if err != nil {
 		return nil, err
@@ -75,16 +76,12 @@ func (a *Azkaban) GetRunningExecIds() ([]int, error) {
 	if err != nil {
 		return nil, err
 	}
-	for index, project := range projects {
+	for _, project := range projects {
 		flows, err := api.FetchFlowsOfAProject(a.Server.Url, a.User.Session.SessionId, project.ProjectName)
 		if err != nil {
 			return nil, err
 		}
-		projects[index].Flows = flows
-	}
-	var runningExecIds []int
-	for _, project := range projects {
-		for _, flow := range project.Flows {
+		for _, flow := range flows {
 			runningExecutions, err := api.FetchRunningExecutionsOfAFlow(a.Server.Url, a.User.Session.SessionId, project.ProjectName, flow.FlowId)
 			if err != nil {
 				return nil, err
