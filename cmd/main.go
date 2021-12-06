@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "azkaban_exporter/azkaban"
 	exporterinfo "azkaban_exporter/pkg/exporter"
 	"azkaban_exporter/pkg/prometheus"
 	"azkaban_exporter/required"
