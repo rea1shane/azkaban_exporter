@@ -104,11 +104,24 @@ func (a *Azkaban) GetRunningExecIds() ([]int, error) {
 	return runningExecIds, nil
 }
 
-func (a *Azkaban) GetExecInfo(execId int) (api.ExecutionInfo, error) {
+func (a *Azkaban) GetExecInfos(execIds []int) ([]api.ExecInfo, error) {
+	var execInfos []api.ExecInfo
 	err := a.auth()
 	if err != nil {
-		return api.ExecutionInfo{}, err
+		return nil, err
 	}
-	execution, err := api.FetchAFlowExecution(a.Server.Url, a.User.Session.SessionId, execId)
-	return execution, nil
+	wg := sync.WaitGroup{}
+	wg.Add(len(execIds))
+	for _, execId := range execIds {
+		go func(execId int) {
+			execInfo, err := api.FetchAFlowExecution(a.Server.Url, a.User.Session.SessionId, execId)
+			if err != nil {
+				panic(fmt.Errorf(err.Error()))
+			}
+			execInfos = append(execInfos, execInfo)
+			wg.Done()
+		}(execId)
+	}
+	wg.Wait()
+	return execInfos, nil
 }

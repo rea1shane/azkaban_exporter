@@ -36,7 +36,7 @@ type Executions struct {
 	ExecIds []int `json:"execIds"`
 }
 
-type ExecutionInfo struct {
+type ExecInfo struct {
 	Project    string         `json:"project"`
 	UpdateTime int64          `json:"updateTime"`
 	Attempt    int            `json:"attempt"`
