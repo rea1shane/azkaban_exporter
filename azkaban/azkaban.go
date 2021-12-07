@@ -66,6 +66,22 @@ func (a *Azkaban) auth() error {
 	return nil
 }
 
+func (a *Azkaban) GetProjectNames() ([]string, error) {
+	var projectNames []string
+	err := a.auth()
+	if err != nil {
+		return nil, err
+	}
+	projects, err := api.FetchUserProjects(a.Server.Url, a.User.Session.SessionId)
+	if err != nil {
+		return nil, err
+	}
+	for _, project := range projects {
+		projectNames = append(projectNames, project.ProjectName)
+	}
+	return projectNames, nil
+}
+
 func (a *Azkaban) GetRunningExecIds() ([]int, error) {
 	var runningExecIds []int
 	err := a.auth()
