@@ -13,7 +13,7 @@ var singletonHttp = util.GetSingletonHttp()
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#authenticate
 func Authenticate(serverUrl string, username string, password string) (string, error) {
 	method := "POST"
-	response := AuthenticateResponse{}
+	response := Auth{}
 	payload := strings.NewReader("action=login&username=" + username + "&password=" + password)
 	req, err := http.NewRequest(method, serverUrl, payload)
 	if err != nil {
@@ -31,7 +31,7 @@ func Authenticate(serverUrl string, username string, password string) (string, e
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-user-projects
 func FetchUserProjects(serverUrl string, sessionId string) ([]Project, error) {
 	method := "GET"
-	response := FetchUserProjectsResponse{}
+	response := UserProjects{}
 	url := serverUrl + "/index?ajax=fetchuserprojects&session.id=" + sessionId
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
@@ -48,7 +48,7 @@ func FetchUserProjects(serverUrl string, sessionId string) ([]Project, error) {
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-flows-of-a-project
 func FetchFlowsOfAProject(serverUrl string, sessionId string, projectName string) ([]Flow, error) {
 	method := "GET"
-	response := FetchFlowsOfAProjectResponse{}
+	response := ProjectFlows{}
 	url := serverUrl + "/manager?ajax=fetchprojectflows&session.id=" + sessionId + "&project=" + projectName
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
@@ -63,34 +63,34 @@ func FetchFlowsOfAProject(serverUrl string, sessionId string, projectName string
 
 // FetchRunningExecutionsOfAFlow
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-running-executions-of-a-flow
-func FetchRunningExecutionsOfAFlow(serverUrl string, sessionId string, projectName string, flowId string) (ExecutionsResponse, error) {
+func FetchRunningExecutionsOfAFlow(serverUrl string, sessionId string, projectName string, flowId string) (Executions, error) {
 	method := "GET"
-	response := ExecutionsResponse{}
+	response := Executions{}
 	url := serverUrl + "/executor?ajax=getRunning&session.id=" + sessionId + "&project=" + projectName + "&flow=" + flowId
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
-		return ExecutionsResponse{}, err
+		return Executions{}, err
 	}
 	err = singletonHttp.Request(req, &response)
 	if err != nil {
-		return ExecutionsResponse{}, err
+		return Executions{}, err
 	}
 	return response, nil
 }
 
 // FetchAFlowExecution
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-a-flow-execution
-func FetchAFlowExecution(serverUrl string, sessionId string, execid int) (ExecutionInformationResponse, error) {
+func FetchAFlowExecution(serverUrl string, sessionId string, execid int) (ExecutionInfo, error) {
 	method := "GET"
-	response := ExecutionInformationResponse{}
+	response := ExecutionInfo{}
 	url := serverUrl + "/executor?ajax=fetchexecflow&session.id=" + sessionId + "&execid=" + strconv.Itoa(execid)
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
-		return ExecutionInformationResponse{}, err
+		return ExecutionInfo{}, err
 	}
 	err = singletonHttp.Request(req, &response)
 	if err != nil {
-		return ExecutionInformationResponse{}, err
+		return ExecutionInfo{}, err
 	}
 	return response, nil
 }

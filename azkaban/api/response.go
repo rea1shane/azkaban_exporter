@@ -16,29 +16,27 @@ type Flow struct {
 	FlowId string `json:"flowId"`
 }
 
-type AuthenticateResponse struct {
+type Auth struct {
 	SessionId string `json:"session.id"`
 	Status    string `json:"status"`
 	Error     string `json:"error"`
 }
 
-type FetchUserProjectsResponse struct {
+type UserProjects struct {
 	Projects []Project `json:"projects"`
-	Error    string    `json:"error"`
 }
 
-type FetchFlowsOfAProjectResponse struct {
+type ProjectFlows struct {
 	ProjectName string `json:"project"`
 	ProjectId   int    `json:"projectId"`
 	Flows       []Flow `json:"flows"`
-	Error       string `json:"error"`
 }
 
-type ExecutionsResponse struct {
+type Executions struct {
 	ExecIds []int `json:"execIds"`
 }
 
-type ExecutionInformationResponse struct {
+type ExecutionInfo struct {
 	Project    string         `json:"project"`
 	UpdateTime int64          `json:"updateTime"`
 	Attempt    int            `json:"attempt"`

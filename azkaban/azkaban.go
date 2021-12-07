@@ -104,10 +104,10 @@ func (a *Azkaban) GetRunningExecIds() ([]int, error) {
 	return runningExecIds, nil
 }
 
-func (a *Azkaban) GetExecInfo(execId int) (api.ExecutionInformationResponse, error) {
+func (a *Azkaban) GetExecInfo(execId int) (api.ExecutionInfo, error) {
 	err := a.auth()
 	if err != nil {
-		return api.ExecutionInformationResponse{}, err
+		return api.ExecutionInfo{}, err
 	}
 	execution, err := api.FetchAFlowExecution(a.Server.Url, a.User.Session.SessionId, execId)
 	return execution, nil
