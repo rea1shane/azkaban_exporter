@@ -40,7 +40,7 @@ type ExecutionInfo struct {
 	Project    string         `json:"project"`
 	UpdateTime int64          `json:"updateTime"`
 	Attempt    int            `json:"attempt"`
-	Execid     int            `json:"execid"`
+	ExecId     int            `json:"execid"`
 	SubmitTime int64          `json:"submitTime"`
 	Nodes      []OutsideNodes `json:"nodes"`
 	NestedID   string         `json:"nestedId"`

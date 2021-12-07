@@ -80,10 +80,10 @@ func FetchRunningExecutionsOfAFlow(serverUrl string, sessionId string, projectNa
 
 // FetchAFlowExecution
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-a-flow-execution
-func FetchAFlowExecution(serverUrl string, sessionId string, execid int) (ExecutionInfo, error) {
+func FetchAFlowExecution(serverUrl string, sessionId string, execId int) (ExecutionInfo, error) {
 	method := "GET"
 	response := ExecutionInfo{}
-	url := serverUrl + "/executor?ajax=fetchexecflow&session.id=" + sessionId + "&execid=" + strconv.Itoa(execid)
+	url := serverUrl + "/executor?ajax=fetchexecflow&session.id=" + sessionId + "&execid=" + strconv.Itoa(execId)
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		return ExecutionInfo{}, err
