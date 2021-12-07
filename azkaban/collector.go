@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	execSubsystem = "execution"
+	subsystem = "execution"
 )
 
 var (
@@ -18,11 +18,12 @@ var (
 )
 
 func init() {
-	util.RegisterCollector(execSubsystem, util.DefaultEnabled, NewAzkabanCollector)
+	util.RegisterCollector(subsystem, util.DefaultEnabled, NewAzkabanCollector)
 }
 
 type azkabanCollector struct {
 	logger      log.Logger
+	preparing   util.TypedDesc
 	running     util.TypedDesc
 	running0    util.TypedDesc
 	running60   util.TypedDesc
@@ -37,28 +38,33 @@ func NewAzkabanCollector(namespace string, logger log.Logger) (required.Collecto
 
 	return &azkabanCollector{
 		logger: logger,
+		preparing: util.TypedDesc{
+			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, subsystem, "preparing"),
+				"The number of preparing executions.", labelNames, nil),
+			ValueType: prometheus.GaugeValue,
+		},
 		running: util.TypedDesc{
-			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, execSubsystem, "running"),
+			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, subsystem, "running"),
 				"The number of running executions.", labelNames, nil),
 			ValueType: prometheus.GaugeValue,
 		},
 		running0: util.TypedDesc{
-			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, execSubsystem, "running_0"),
+			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, subsystem, "running_0"),
 				"The number of running executions which running time in [0, 60) mins.", labelNames, nil),
 			ValueType: prometheus.GaugeValue,
 		},
 		running60: util.TypedDesc{
-			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, execSubsystem, "running_60"),
+			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, subsystem, "running_60"),
 				"The number of running executions which running time in [60, 300) mins.", labelNames, nil),
 			ValueType: prometheus.GaugeValue,
 		},
 		running300: util.TypedDesc{
-			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, execSubsystem, "running_300"),
+			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, subsystem, "running_300"),
 				"The number of running executions which running time in [300, 1440) mins.", labelNames, nil),
 			ValueType: prometheus.GaugeValue,
 		},
 		running1440: util.TypedDesc{
-			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, execSubsystem, "running_1440"),
+			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, subsystem, "running_1440"),
 				"The number of running executions which running time over 1440 mins.", labelNames, nil),
 			ValueType: prometheus.GaugeValue,
 		},
@@ -71,6 +77,7 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		return err
 	}
 	var (
+		preparingCounter   = map[string]int{}
 		runningCounter     = map[string]int{}
 		running0Counter    = map[string]int{}
 		running60Counter   = map[string]int{}
@@ -78,6 +85,7 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		running1440Counter = map[string]int{}
 	)
 	for _, projectName := range projectNames {
+		preparingCounter[projectName] = 0
 		runningCounter[projectName] = 0
 		running0Counter[projectName] = 0
 		running60Counter[projectName] = 0
@@ -90,17 +98,24 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 	}
 	for _, info := range infos {
 		projectName := info.Project
-		runningTime := time.Now().UnixMilli() - info.StartTime
-		if inRange(runningTime, 0, 3600000) {
-			running0Counter[projectName]++
-		} else if inRange(runningTime, 3600000, 18000000) {
-			running60Counter[projectName]++
-		} else if inRange(runningTime, 18000000, 86400000) {
-			running300Counter[projectName]++
+		if info.StartTime == -1 {
+			preparingCounter[projectName]++
 		} else {
-			running1440Counter[projectName]++
+			runningTime := time.Now().UnixMilli() - info.StartTime
+			if inRange(runningTime, 0, 3600000) {
+				running0Counter[projectName]++
+			} else if inRange(runningTime, 3600000, 18000000) {
+				running60Counter[projectName]++
+			} else if inRange(runningTime, 18000000, 86400000) {
+				running300Counter[projectName]++
+			} else {
+				running1440Counter[projectName]++
+			}
+			runningCounter[projectName]++
 		}
-		runningCounter[projectName]++
+	}
+	for projectName, num := range preparingCounter {
+		ch <- c.preparing.MustNewConstMetric(float64(num), projectName)
 	}
 	for projectName, num := range runningCounter {
 		ch <- c.running.MustNewConstMetric(float64(num), projectName)
