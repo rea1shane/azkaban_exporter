@@ -67,6 +67,7 @@ func (a *Azkaban) auth() error {
 }
 
 func (a *Azkaban) GetRunningExecIds() ([]int, error) {
+	var runningExecIds []int
 	err := a.auth()
 	if err != nil {
 		return nil, err
@@ -75,23 +76,31 @@ func (a *Azkaban) GetRunningExecIds() ([]int, error) {
 	if err != nil {
 		return nil, err
 	}
-	for index, project := range projects {
-		flows, err := api.FetchFlowsOfAProject(a.Server.Url, a.User.Session.SessionId, project.ProjectName)
-		if err != nil {
-			return nil, err
-		}
-		projects[index].Flows = flows
-	}
-	var runningExecIds []int
+	wgProjects := sync.WaitGroup{}
+	wgProjects.Add(len(projects))
 	for _, project := range projects {
-		for _, flow := range project.Flows {
-			runningExecutions, err := api.FetchRunningExecutionsOfAFlow(a.Server.Url, a.User.Session.SessionId, project.ProjectName, flow.FlowId)
+		go func(project api.Project) {
+			flows, err := api.FetchFlowsOfAProject(a.Server.Url, a.User.Session.SessionId, project.ProjectName)
 			if err != nil {
-				return nil, err
+				panic(fmt.Errorf(err.Error()))
 			}
-			runningExecIds = append(runningExecIds, runningExecutions.ExecIds...)
-		}
+			wgFlows := sync.WaitGroup{}
+			wgFlows.Add(len(flows))
+			for _, flow := range flows {
+				go func(flow api.Flow) {
+					runningExecutions, err := api.FetchRunningExecutionsOfAFlow(a.Server.Url, a.User.Session.SessionId, project.ProjectName, flow.FlowId)
+					if err != nil {
+						panic(fmt.Errorf(err.Error()))
+					}
+					runningExecIds = append(runningExecIds, runningExecutions.ExecIds...)
+					wgFlows.Done()
+				}(flow)
+			}
+			wgFlows.Wait()
+			wgProjects.Done()
+		}(project)
 	}
+	wgProjects.Wait()
 	return runningExecIds, nil
 }
 
