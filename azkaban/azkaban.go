@@ -81,13 +81,19 @@ func (a *Azkaban) GetRunningExecIds() ([]int, error) {
 		if err != nil {
 			return nil, err
 		}
+		wgFlows := sync.WaitGroup{}
+		wgFlows.Add(len(flows))
 		for _, flow := range flows {
-			runningExecutions, err := api.FetchRunningExecutionsOfAFlow(a.Server.Url, a.User.Session.SessionId, project.ProjectName, flow.FlowId)
-			if err != nil {
-				return nil, err
-			}
-			runningExecIds = append(runningExecIds, runningExecutions.ExecIds...)
+			go func(flow api.Flow) {
+				runningExecutions, err := api.FetchRunningExecutionsOfAFlow(a.Server.Url, a.User.Session.SessionId, project.ProjectName, flow.FlowId)
+				if err != nil {
+					panic(fmt.Errorf(err.Error()))
+				}
+				runningExecIds = append(runningExecIds, runningExecutions.ExecIds...)
+				wgFlows.Done()
+			}(flow)
 		}
+		wgFlows.Wait()
 	}
 	return runningExecIds, nil
 }
