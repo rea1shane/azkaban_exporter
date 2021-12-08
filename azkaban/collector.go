@@ -24,13 +24,14 @@ func init() {
 }
 
 type azkabanCollector struct {
-	logger      log.Logger
-	preparing   util.TypedDesc
-	running     util.TypedDesc
-	running0    util.TypedDesc
-	running60   util.TypedDesc
-	running300  util.TypedDesc
-	running1440 util.TypedDesc
+	logger         log.Logger
+	preparing      util.TypedDesc
+	running        util.TypedDesc
+	running0       util.TypedDesc
+	running60      util.TypedDesc
+	running300     util.TypedDesc
+	running1440    util.TypedDesc
+	runningAttempt util.TypedDesc
 }
 
 func NewAzkabanCollector(namespace string, logger log.Logger) (required.Collector, error) {
@@ -70,17 +71,23 @@ func NewAzkabanCollector(namespace string, logger log.Logger) (required.Collecto
 				"The number of running executions which running time over 1440 mins.", labelNames, nil),
 			ValueType: prometheus.GaugeValue,
 		},
+		runningAttempt: util.TypedDesc{
+			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, subsystem, "running_attempt"),
+				"The number of running executions which attempt more than 1 times (include 1 times).", labelNames, nil),
+			ValueType: prometheus.GaugeValue,
+		},
 	}, nil
 }
 
 func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 	var (
-		preparingCounter   = map[string]int{}
-		runningCounter     = map[string]int{}
-		running0Counter    = map[string]int{}
-		running60Counter   = map[string]int{}
-		running300Counter  = map[string]int{}
-		running1440Counter = map[string]int{}
+		preparingCounter      = map[string]int{}
+		runningCounter        = map[string]int{}
+		running0Counter       = map[string]int{}
+		running60Counter      = map[string]int{}
+		running300Counter     = map[string]int{}
+		running1440Counter    = map[string]int{}
+		runningAttemptCounter = map[string]int{}
 	)
 	projectNames := make(chan string)
 	go func() {
@@ -97,6 +104,7 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		running60Counter[projectName] = 0
 		running300Counter[projectName] = 0
 		running1440Counter[projectName] = 0
+		runningAttemptCounter[projectName] = 0
 	}
 	ids := make(chan int)
 	infos := make(chan api.ExecInfo)
@@ -131,9 +139,12 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 			}
 			runningCounter[projectName]++
 		}
+		if info.Attempt != 0 {
+			runningAttemptCounter[projectName]++
+		}
 	}
 	wg := sync.WaitGroup{}
-	wg.Add(6)
+	wg.Add(7)
 	go func() {
 		defer wg.Done()
 		for projectName, num := range preparingCounter {
@@ -168,6 +179,12 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		defer wg.Done()
 		for projectName, num := range running1440Counter {
 			ch <- c.running1440.MustNewConstMetric(float64(num), projectName)
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		for projectName, num := range runningAttemptCounter {
+			ch <- c.runningAttempt.MustNewConstMetric(float64(num), projectName)
 		}
 	}()
 	wg.Wait()
