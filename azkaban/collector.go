@@ -1,10 +1,11 @@
 package azkaban
 
 import (
-	"azkaban_exporter/azkaban/api"
 	"azkaban_exporter/required"
 	"azkaban_exporter/util"
+	"encoding/json"
 	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	"time"
 )
@@ -92,7 +93,15 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		running300Counter[projectName] = 0
 		running1440Counter[projectName] = 0
 	}
-	infos, err := getRunningExecInfos()
+	ids, err := azkaban.GetRunningExecIds()
+	if err != nil {
+		return err
+	}
+	_ = level.Debug(c.logger).Log("msg", "running exec ids", "ids", func(ids []int) []byte {
+		idsString, _ := json.Marshal(ids)
+		return idsString
+	}(ids))
+	infos, err := azkaban.GetExecInfos(ids)
 	if err != nil {
 		return err
 	}
@@ -133,18 +142,6 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		ch <- c.running1440.MustNewConstMetric(float64(num), projectName)
 	}
 	return nil
-}
-
-func getRunningExecInfos() ([]api.ExecInfo, error) {
-	ids, err := azkaban.GetRunningExecIds()
-	if err != nil {
-		return nil, err
-	}
-	infos, err := azkaban.GetExecInfos(ids)
-	if err != nil {
-		return nil, err
-	}
-	return infos, nil
 }
 
 // inRange determine whether a number belongs to a range.

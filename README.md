@@ -1,5 +1,10 @@
 # Azkaban Exporter
 
+## TODO
+
+- 协程写数组改为写 ch
+- 去掉调试用的 panic
+
 To see all available configuration flags:
 
 ```shell
@@ -27,3 +32,5 @@ sysctl -w net.ipv4.tcp_timestamps=1    #修改tcp/ip协议配置， 通过配置
 sysctl -w net.ipv4.tcp_tw_recycle=1     #修改tcp/ip协议配置，快速回收socket资源，默认为0，修改为1：
 sysctl -w net.ipv4.tcp_tw_reuse = 1     #允许端口重用
 ```
+
+### invalid character '<' looking for beginning of value
