@@ -38,8 +38,8 @@ func (t TargetCollector) Collect(ch chan<- prometheus.Metric) {
 	wg.Add(len(t.Collectors))
 	for name, c := range t.Collectors {
 		go func(name string, c required.Collector) {
+			defer wg.Done()
 			Execute(name, c, ch, t.Logger, t.ScrapeDurationDesc, t.ScrapeSuccessDesc)
-			wg.Done()
 		}(name, c)
 	}
 	wg.Wait()

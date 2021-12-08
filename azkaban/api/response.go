@@ -24,16 +24,19 @@ type Auth struct {
 
 type UserProjects struct {
 	Projects []Project `json:"projects"`
+	Error    string    `json:"error"`
 }
 
 type ProjectFlows struct {
 	ProjectName string `json:"project"`
 	ProjectId   int    `json:"projectId"`
 	Flows       []Flow `json:"flows"`
+	Error       string `json:"error"`
 }
 
 type Executions struct {
-	ExecIds []int `json:"execIds"`
+	ExecIds []int  `json:"execIds"`
+	Error   string `json:"error"`
 }
 
 type ExecInfo struct {
@@ -53,6 +56,7 @@ type ExecInfo struct {
 	Flow       string         `json:"flow"`
 	Status     string         `json:"status"`
 	//Type       interface{}    `json:"type"`
+	Error string `json:"error"`
 }
 
 type OutsideNodes struct {

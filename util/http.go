@@ -2,6 +2,7 @@ package util
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -41,4 +42,8 @@ func (h *SingletonHttp) Request(req *http.Request, responseStruct interface{}) e
 		return err
 	}
 	return nil
+}
+
+func RequestFailureError(apiName string, reason string) error {
+	return errors.New("request failure when call " + apiName + " api, reason: " + reason)
 }

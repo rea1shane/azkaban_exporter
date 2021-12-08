@@ -17,7 +17,7 @@ type Server struct {
 }
 
 type Session struct {
-	SessionId     string // SessionId 有效期 24 小时
+	SessionId     string // SessionId 默认有效期 24 小时
 	AuthTimestamp int64
 }
 
@@ -96,6 +96,7 @@ func (a *Azkaban) GetRunningExecIds() ([]int, error) {
 	wgProjects.Add(len(projects))
 	for _, project := range projects {
 		go func(project api.Project) {
+			defer wgProjects.Done()
 			flows, err := api.FetchFlowsOfAProject(a.Server.Url, a.User.Session.SessionId, project.ProjectName)
 			if err != nil {
 				panic(fmt.Errorf(err.Error()))
@@ -104,16 +105,15 @@ func (a *Azkaban) GetRunningExecIds() ([]int, error) {
 			wgFlows.Add(len(flows))
 			for _, flow := range flows {
 				go func(flow api.Flow) {
+					defer wgFlows.Done()
 					runningExecutions, err := api.FetchRunningExecutionsOfAFlow(a.Server.Url, a.User.Session.SessionId, project.ProjectName, flow.FlowId)
 					if err != nil {
 						panic(fmt.Errorf(err.Error()))
 					}
 					runningExecIds = append(runningExecIds, runningExecutions.ExecIds...)
-					wgFlows.Done()
 				}(flow)
 			}
 			wgFlows.Wait()
-			wgProjects.Done()
 		}(project)
 	}
 	wgProjects.Wait()
@@ -130,12 +130,12 @@ func (a *Azkaban) GetExecInfos(execIds []int) ([]api.ExecInfo, error) {
 	wg.Add(len(execIds))
 	for _, execId := range execIds {
 		go func(execId int) {
+			defer wg.Done()
 			execInfo, err := api.FetchAFlowExecution(a.Server.Url, a.User.Session.SessionId, execId)
 			if err != nil {
 				panic(fmt.Errorf(err.Error()))
 			}
 			execInfos = append(execInfos, execInfo)
-			wg.Done()
 		}(execId)
 	}
 	wg.Wait()

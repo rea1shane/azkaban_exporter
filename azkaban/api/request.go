@@ -24,6 +24,9 @@ func Authenticate(serverUrl string, username string, password string) (string, e
 	if err != nil {
 		return "", err
 	}
+	if response.Error != "" {
+		return "", util.RequestFailureError("authenticate", response.Error)
+	}
 	return response.SessionId, nil
 }
 
@@ -40,6 +43,9 @@ func FetchUserProjects(serverUrl string, sessionId string) ([]Project, error) {
 	err = singletonHttp.Request(req, &response)
 	if err != nil {
 		return nil, err
+	}
+	if response.Error != "" {
+		return nil, util.RequestFailureError("fetch-user-projects", response.Error)
 	}
 	return response.Projects, nil
 }
@@ -58,6 +64,9 @@ func FetchFlowsOfAProject(serverUrl string, sessionId string, projectName string
 	if err != nil {
 		return nil, err
 	}
+	if response.Error != "" {
+		return nil, util.RequestFailureError("fetch-flows-of-a-project", response.Error)
+	}
 	return response.Flows, nil
 }
 
@@ -75,6 +84,9 @@ func FetchRunningExecutionsOfAFlow(serverUrl string, sessionId string, projectNa
 	if err != nil {
 		return Executions{}, err
 	}
+	if response.Error != "" {
+		return Executions{}, util.RequestFailureError("fetch-running-executions-of-a-flow", response.Error)
+	}
 	return response, nil
 }
 
@@ -91,6 +103,9 @@ func FetchAFlowExecution(serverUrl string, sessionId string, execId int) (ExecIn
 	err = singletonHttp.Request(req, &response)
 	if err != nil {
 		return ExecInfo{}, err
+	}
+	if response.Error != "" {
+		return ExecInfo{}, util.RequestFailureError("fetch-a-flow-execution", response.Error)
 	}
 	return response, nil
 }
