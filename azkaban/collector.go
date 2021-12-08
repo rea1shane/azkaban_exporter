@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/go-kit/log"
 	"github.com/prometheus/client_golang/prometheus"
+	"sync"
 	"time"
 )
 
@@ -131,24 +132,45 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 			runningCounter[projectName]++
 		}
 	}
-	for projectName, num := range preparingCounter {
-		ch <- c.preparing.MustNewConstMetric(float64(num), projectName)
-	}
-	for projectName, num := range runningCounter {
-		ch <- c.running.MustNewConstMetric(float64(num), projectName)
-	}
-	for projectName, num := range running0Counter {
-		ch <- c.running0.MustNewConstMetric(float64(num), projectName)
-	}
-	for projectName, num := range running60Counter {
-		ch <- c.running60.MustNewConstMetric(float64(num), projectName)
-	}
-	for projectName, num := range running300Counter {
-		ch <- c.running300.MustNewConstMetric(float64(num), projectName)
-	}
-	for projectName, num := range running1440Counter {
-		ch <- c.running1440.MustNewConstMetric(float64(num), projectName)
-	}
+	wg := sync.WaitGroup{}
+	wg.Add(6)
+	go func() {
+		defer wg.Done()
+		for projectName, num := range preparingCounter {
+			ch <- c.preparing.MustNewConstMetric(float64(num), projectName)
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		for projectName, num := range runningCounter {
+			ch <- c.running.MustNewConstMetric(float64(num), projectName)
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		for projectName, num := range running0Counter {
+			ch <- c.running0.MustNewConstMetric(float64(num), projectName)
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		for projectName, num := range running60Counter {
+			ch <- c.running60.MustNewConstMetric(float64(num), projectName)
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		for projectName, num := range running300Counter {
+			ch <- c.running300.MustNewConstMetric(float64(num), projectName)
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		for projectName, num := range running1440Counter {
+			ch <- c.running1440.MustNewConstMetric(float64(num), projectName)
+		}
+	}()
+	wg.Wait()
 	return nil
 }
 
