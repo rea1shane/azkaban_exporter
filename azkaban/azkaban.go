@@ -66,78 +66,95 @@ func (a *Azkaban) auth() error {
 	return nil
 }
 
-func (a *Azkaban) GetProjectNames() ([]string, error) {
-	var projectNames []string
+func (a *Azkaban) GetProjectNames(ch chan<- string) error {
 	err := a.auth()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	projects, err := api.FetchUserProjects(a.Server.Url, a.User.Session.SessionId)
 	if err != nil {
-		return nil, err
+		return err
 	}
+	wg := sync.WaitGroup{}
 	for _, project := range projects {
-		projectNames = append(projectNames, project.ProjectName)
+		wg.Add(1)
+		go func(project api.Project) {
+			defer wg.Done()
+			ch <- project.ProjectName
+		}(project)
 	}
-	return projectNames, nil
+	wg.Wait()
+	close(ch)
+	return nil
 }
 
-func (a *Azkaban) GetRunningExecIds() ([]int, error) {
-	var runningExecIds []int
+func (a *Azkaban) GetRunningExecIds(ch chan<- int) error {
 	err := a.auth()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	projects, err := api.FetchUserProjects(a.Server.Url, a.User.Session.SessionId)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	wgProjects := sync.WaitGroup{}
-	wgProjects.Add(len(projects))
 	for _, project := range projects {
+		wgProjects.Add(1)
 		go func(project api.Project) {
 			defer wgProjects.Done()
 			flows, err := api.FetchFlowsOfAProject(a.Server.Url, a.User.Session.SessionId, project.ProjectName)
 			if err != nil {
+				// TODO 处理 panic
 				panic(fmt.Errorf(err.Error()))
 			}
 			wgFlows := sync.WaitGroup{}
-			wgFlows.Add(len(flows))
 			for _, flow := range flows {
+				wgFlows.Add(1)
 				go func(flow api.Flow) {
 					defer wgFlows.Done()
 					runningExecutions, err := api.FetchRunningExecutionsOfAFlow(a.Server.Url, a.User.Session.SessionId, project.ProjectName, flow.FlowId)
 					if err != nil {
+						// TODO 处理 panic
 						panic(fmt.Errorf(err.Error()))
 					}
-					runningExecIds = append(runningExecIds, runningExecutions.ExecIds...)
+					wgExecs := sync.WaitGroup{}
+					for _, execId := range runningExecutions.ExecIds {
+						wgExecs.Add(1)
+						go func(execId int) {
+							wgExecs.Done()
+							ch <- execId
+						}(execId)
+					}
+					wgExecs.Wait()
 				}(flow)
 			}
 			wgFlows.Wait()
 		}(project)
 	}
 	wgProjects.Wait()
-	return runningExecIds, nil
+	close(ch)
+	return nil
 }
 
-func (a *Azkaban) GetExecInfos(execIds []int) ([]api.ExecInfo, error) {
-	var execInfos []api.ExecInfo
+func (a *Azkaban) GetExecInfos(execIds <-chan int, execInfos chan<- api.ExecInfo) error {
 	err := a.auth()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	wg := sync.WaitGroup{}
-	wg.Add(len(execIds))
-	for _, execId := range execIds {
+	for execId := range execIds {
+		wg.Add(1)
 		go func(execId int) {
 			defer wg.Done()
 			execInfo, err := api.FetchAFlowExecution(a.Server.Url, a.User.Session.SessionId, execId)
 			if err != nil {
+				// TODO 处理 panic
 				panic(fmt.Errorf(err.Error()))
 			}
-			execInfos = append(execInfos, execInfo)
+			execInfos <- execInfo
 		}(execId)
 	}
 	wg.Wait()
-	return execInfos, nil
+	close(execInfos)
+	return nil
 }

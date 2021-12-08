@@ -1,11 +1,11 @@
 package azkaban
 
 import (
+	"azkaban_exporter/azkaban/api"
 	"azkaban_exporter/required"
 	"azkaban_exporter/util"
-	"encoding/json"
+	"fmt"
 	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	"time"
 )
@@ -73,10 +73,6 @@ func NewAzkabanCollector(namespace string, logger log.Logger) (required.Collecto
 }
 
 func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
-	projectNames, err := azkaban.GetProjectNames()
-	if err != nil {
-		return err
-	}
 	var (
 		preparingCounter   = map[string]int{}
 		runningCounter     = map[string]int{}
@@ -85,7 +81,15 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		running300Counter  = map[string]int{}
 		running1440Counter = map[string]int{}
 	)
-	for _, projectName := range projectNames {
+	projectNames := make(chan string)
+	go func() {
+		err := azkaban.GetProjectNames(projectNames)
+		if err != nil {
+			// TODO 处理 panic
+			panic(fmt.Errorf(err.Error()))
+		}
+	}()
+	for projectName := range projectNames {
 		preparingCounter[projectName] = 0
 		runningCounter[projectName] = 0
 		running0Counter[projectName] = 0
@@ -93,19 +97,23 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		running300Counter[projectName] = 0
 		running1440Counter[projectName] = 0
 	}
-	ids, err := azkaban.GetRunningExecIds()
-	if err != nil {
-		return err
-	}
-	_ = level.Debug(c.logger).Log("msg", "running exec ids", "ids", func(ids []int) []byte {
-		idsString, _ := json.Marshal(ids)
-		return idsString
-	}(ids))
-	infos, err := azkaban.GetExecInfos(ids)
-	if err != nil {
-		return err
-	}
-	for _, info := range infos {
+	ids := make(chan int)
+	infos := make(chan api.ExecInfo)
+	go func() {
+		err := azkaban.GetRunningExecIds(ids)
+		if err != nil {
+			// TODO 处理 panic
+			panic(fmt.Errorf(err.Error()))
+		}
+	}()
+	go func() {
+		err := azkaban.GetExecInfos(ids, infos)
+		if err != nil {
+			// TODO 处理 panic
+			panic(fmt.Errorf(err.Error()))
+		}
+	}()
+	for info := range infos {
 		projectName := info.Project
 		if info.StartTime == -1 {
 			preparingCounter[projectName]++
