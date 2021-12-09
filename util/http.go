@@ -44,7 +44,6 @@ func (h *SingletonHttp) Request(req *http.Request, responseStruct interface{}) e
 	return nil
 }
 
-// TODO rename
-func RequestFailureError(apiName string, reason string) error {
+func ErrRequestFailure(apiName string, reason string) error {
 	return errors.New("request failure when call " + apiName + " api, reason: " + reason)
 }
