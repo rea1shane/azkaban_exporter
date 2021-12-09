@@ -2,7 +2,7 @@ package main
 
 import (
 	_ "azkaban_exporter/azkaban"
-	"azkaban_exporter/required/function"
+	"azkaban_exporter/required/functions"
 	"azkaban_exporter/required/structs"
 	"azkaban_exporter/util"
 )
@@ -12,5 +12,5 @@ func main() {
 		MonitorTargetName: "Azkaban",
 		DefaultPort:       9900,
 	}
-	function.Run(azkabanExporter, util.GetErrorChannel())
+	functions.Run(azkabanExporter, util.GetErrorChannel())
 }

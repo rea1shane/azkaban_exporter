@@ -1,6 +1,7 @@
 package azkaban
 
 import (
+	"azkaban_exporter/required/functions"
 	"azkaban_exporter/required/structs"
 	"azkaban_exporter/util"
 	"fmt"
@@ -21,7 +22,7 @@ var (
 )
 
 func init() {
-	util.RegisterCollector(subsystem, util.DefaultEnabled, NewAzkabanCollector)
+	functions.RegisterCollector(subsystem, util.DefaultEnabled, NewAzkabanCollector)
 }
 
 type azkabanCollector struct {
