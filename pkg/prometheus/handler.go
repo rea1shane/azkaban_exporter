@@ -2,6 +2,7 @@ package prometheus
 
 import (
 	"azkaban_exporter/pkg/exporter"
+	"encoding/json"
 	"fmt"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -49,7 +50,14 @@ func NewHandler(exporter exporter.Exporter, includeExporterMetrics bool, maxRequ
 // ServeHTTP implements http.Handler.
 func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	filters := request.URL.Query()["collect[]"]
-	_ = level.Debug(h.Logger).Log("msg", "collect query:", "filters", filters)
+	_ = level.Debug(h.Logger).Log("msg", "collect query:", "filters", func(filters []string) []byte {
+		filterBytes, err := json.Marshal(filters)
+		if err != nil {
+			// TODO 处理 panic
+			panic(fmt.Errorf(err.Error()))
+		}
+		return filterBytes
+	}(filters))
 
 	if len(filters) == 0 {
 		// No filters, use the prepared unfiltered handler.
