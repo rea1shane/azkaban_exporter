@@ -1,4 +1,4 @@
-package required
+package structs
 
 import (
 	"github.com/prometheus/client_golang/prometheus"

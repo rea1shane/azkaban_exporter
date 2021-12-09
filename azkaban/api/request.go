@@ -25,7 +25,7 @@ func Authenticate(serverUrl string, username string, password string) (string, e
 		return "", err
 	}
 	if response.Error != "" {
-		return "", util.RequestFailureError("authenticate", response.Error)
+		return "", util.ErrRequestFailure("authenticate", response.Error)
 	}
 	return response.SessionId, nil
 }
@@ -45,7 +45,7 @@ func FetchUserProjects(serverUrl string, sessionId string) ([]Project, error) {
 		return nil, err
 	}
 	if response.Error != "" {
-		return nil, util.RequestFailureError("fetch-user-projects", response.Error)
+		return nil, util.ErrRequestFailure("fetch-user-projects", response.Error)
 	}
 	return response.Projects, nil
 }
@@ -65,7 +65,7 @@ func FetchFlowsOfAProject(serverUrl string, sessionId string, projectName string
 		return nil, err
 	}
 	if response.Error != "" {
-		return nil, util.RequestFailureError("fetch-flows-of-a-project", response.Error)
+		return nil, util.ErrRequestFailure("fetch-flows-of-a-project", response.Error)
 	}
 	return response.Flows, nil
 }
@@ -86,7 +86,7 @@ func FetchExecutionsOfAFlow(serverUrl string, sessionId string, projectName stri
 		return Executions{}, err
 	}
 	if response.Error != "" {
-		return Executions{}, util.RequestFailureError("fetch-running-executions-of-a-flow", response.Error)
+		return Executions{}, util.ErrRequestFailure("fetch-running-executions-of-a-flow", response.Error)
 	}
 	return response, nil
 }

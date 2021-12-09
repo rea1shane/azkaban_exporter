@@ -2,7 +2,7 @@ package prometheus
 
 import (
 	"azkaban_exporter/pkg/exporter"
-	"azkaban_exporter/required"
+	"azkaban_exporter/required/structs"
 	"errors"
 	"fmt"
 	"github.com/go-kit/log"
@@ -14,15 +14,15 @@ import (
 )
 
 var (
-	Factories              = make(map[string]func(namespace string, logger log.Logger) (required.Collector, error)) // Factories records all collector's construction method
-	InitiatedCollectorsMtx = sync.Mutex{}                                                                           // InitiatedCollectorsMtx avoid thread conflicts
-	InitiatedCollectors    = make(map[string]required.Collector)                                                    // InitiatedCollectors record the collectors that have been initialized in the method NewTargetCollector (To reduce the collector's construction method call)
-	CollectorState         = make(map[string]*bool)                                                                 // CollectorState records all collector's default state (enable or disable)
-	ForcedCollectors       = map[string]bool{}                                                                      // ForcedCollectors collectors which have been explicitly enabled or disabled
+	Factories              = make(map[string]func(namespace string, logger log.Logger) (structs.Collector, error)) // Factories records all collector's construction method
+	InitiatedCollectorsMtx = sync.Mutex{}                                                                          // InitiatedCollectorsMtx avoid thread conflicts
+	InitiatedCollectors    = make(map[string]structs.Collector)                                                    // InitiatedCollectors record the collectors that have been initialized in the method NewTargetCollector (To reduce the collector's construction method call)
+	CollectorState         = make(map[string]*bool)                                                                // CollectorState records all collector's default state (enable or disable)
+	ForcedCollectors       = map[string]bool{}                                                                     // ForcedCollectors collectors which have been explicitly enabled or disabled
 )
 
 type TargetCollector struct {
-	Collectors         map[string]required.Collector
+	Collectors         map[string]structs.Collector
 	Logger             log.Logger
 	ScrapeDurationDesc *prometheus.Desc
 	ScrapeSuccessDesc  *prometheus.Desc
@@ -37,7 +37,7 @@ func (t TargetCollector) Collect(ch chan<- prometheus.Metric) {
 	wg := sync.WaitGroup{}
 	for name, c := range t.Collectors {
 		wg.Add(1)
-		go func(name string, c required.Collector) {
+		go func(name string, c structs.Collector) {
 			defer wg.Done()
 			Execute(name, c, ch, t.Logger, t.ScrapeDurationDesc, t.ScrapeSuccessDesc)
 		}(name, c)
@@ -58,7 +58,7 @@ func NewTargetCollector(exporter exporter.Exporter, logger log.Logger, filters .
 		}
 		f[filter] = true
 	}
-	collectors := make(map[string]required.Collector)
+	collectors := make(map[string]structs.Collector)
 	InitiatedCollectorsMtx.Lock()
 	defer InitiatedCollectorsMtx.Unlock()
 	for key, enabled := range CollectorState {
@@ -94,7 +94,7 @@ func NewTargetCollector(exporter exporter.Exporter, logger log.Logger, filters .
 	}, nil
 }
 
-func RegisterCollector(collector string, isDefaultEnabled bool, factory func(namespace string, logger log.Logger) (required.Collector, error)) {
+func RegisterCollector(collector string, isDefaultEnabled bool, factory func(namespace string, logger log.Logger) (structs.Collector, error)) {
 	var helpDefaultState string
 	if isDefaultEnabled {
 		helpDefaultState = "enabled"
@@ -119,7 +119,7 @@ func CollectorFlagAction(collector string) func(ctx *kingpin.ParseContext) error
 	}
 }
 
-func Execute(name string, c required.Collector, ch chan<- prometheus.Metric, logger log.Logger, scrapeDurationDesc *prometheus.Desc, scrapeSuccessDesc *prometheus.Desc) {
+func Execute(name string, c structs.Collector, ch chan<- prometheus.Metric, logger log.Logger, scrapeDurationDesc *prometheus.Desc, scrapeSuccessDesc *prometheus.Desc) {
 	begin := time.Now()
 	err := c.Update(ch)
 	duration := time.Since(begin)
