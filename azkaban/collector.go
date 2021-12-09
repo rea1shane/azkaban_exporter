@@ -28,6 +28,7 @@ func init() {
 // TODO flow count
 type azkabanCollector struct {
 	logger      log.Logger
+	projects    util.TypedDesc
 	preparing   util.TypedDesc
 	running     util.TypedDesc
 	running0    util.TypedDesc
@@ -45,6 +46,11 @@ func NewAzkabanCollector(namespace string, logger log.Logger) (required.Collecto
 
 	return &azkabanCollector{
 		logger: logger,
+		projects: util.TypedDesc{
+			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, "", "projects"),
+				"The number of projects", nil, nil),
+			ValueType: prometheus.GaugeValue,
+		},
 		preparing: util.TypedDesc{
 			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, subsystem, "preparing"),
 				"The number of preparing start flows", labelProject, nil),
@@ -88,6 +94,8 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		projectsWithFlows = make(chan ProjectWithFlows)
 		executions        = make(chan Execution)
 
+		projects = 0
+
 		preparingCounter      = map[string]int{}
 		runningCounter        = map[string]int{}
 		running0Counter       = map[string]int{}
@@ -110,6 +118,7 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		wg := sync.WaitGroup{}
 		for projectWithFlows := range projectsWithFlows {
 			projectName := projectWithFlows.ProjectName
+			projects++
 			preparingCounter[projectName] = 0
 			runningCounter[projectName] = 0
 			running0Counter[projectName] = 0
@@ -166,7 +175,11 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		}
 	}
 	wg := sync.WaitGroup{}
-	wg.Add(7)
+	wg.Add(8)
+	go func() {
+		defer wg.Done()
+		ch <- c.projects.MustNewConstMetric(float64(projects))
+	}()
 	go func() {
 		defer wg.Done()
 		for projectName, num := range preparingCounter {
