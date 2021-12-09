@@ -35,52 +35,22 @@ type ProjectFlows struct {
 }
 
 type Executions struct {
-	ExecIds []int  `json:"execIds"`
-	Error   string `json:"error"`
+	Total      int         `json:"total"`
+	Executions []Execution `json:"executions"`
+	Length     int         `json:"length"`
+	Project    string      `json:"project"`
+	From       int         `json:"from"`
+	ProjectID  int         `json:"projectId"`
+	Flow       string      `json:"flow"`
+	Error      string      `json:"error"`
 }
-
-type ExecInfo struct {
-	Project    string         `json:"project"`
-	UpdateTime int64          `json:"updateTime"`
-	Attempt    int            `json:"attempt"`
-	ExecId     int            `json:"execid"`
-	SubmitTime int64          `json:"submitTime"`
-	Nodes      []OutsideNodes `json:"nodes"`
-	NestedID   string         `json:"nestedId"`
-	SubmitUser string         `json:"submitUser"`
-	StartTime  int64          `json:"startTime"`
-	ID         string         `json:"id"`
-	EndTime    int64          `json:"endTime"`
-	ProjectID  int            `json:"projectId"`
-	FlowID     string         `json:"flowId"`
-	Flow       string         `json:"flow"`
-	Status     string         `json:"status"`
-	//Type       interface{}    `json:"type"`
-	Error string `json:"error"`
-}
-
-type OutsideNodes struct {
-	Nodes      []InsideNodes `json:"nodes"`
-	NestedID   string        `json:"nestedId"`
-	StartTime  int64         `json:"startTime"`
-	UpdateTime int64         `json:"updateTime"`
-	ID         string        `json:"id"`
-	EndTime    int64         `json:"endTime"`
-	Type       string        `json:"type"`
-	Attempt    int           `json:"attempt"`
-	FlowID     string        `json:"flowId"`
-	Flow       string        `json:"flow"`
-	Status     string        `json:"status"`
-}
-
-type InsideNodes struct {
-	NestedID   string   `json:"nestedId"`
-	In         []string `json:"in,omitempty"`
-	StartTime  int64    `json:"startTime"`
-	UpdateTime int64    `json:"updateTime"`
-	ID         string   `json:"id"`
-	EndTime    int64    `json:"endTime"`
-	Type       string   `json:"type"`
-	Attempt    int      `json:"attempt"`
-	Status     string   `json:"status"`
+type Execution struct {
+	SubmitTime int64  `json:"submitTime"`
+	SubmitUser string `json:"submitUser"`
+	StartTime  int64  `json:"startTime"`
+	EndTime    int64  `json:"endTime"`
+	FlowID     string `json:"flowId"`
+	ProjectID  int    `json:"projectId"`
+	ExecID     int    `json:"execId"`
+	Status     string `json:"status"`
 }
