@@ -24,8 +24,6 @@ func init() {
 	util.RegisterCollector(subsystem, util.DefaultEnabled, NewAzkabanCollector)
 }
 
-// TODO project count
-// TODO flow count
 type azkabanCollector struct {
 	logger      log.Logger
 	projects    util.TypedDesc
