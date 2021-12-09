@@ -1,7 +1,7 @@
 package azkaban
 
 import (
-	"azkaban_exporter/required"
+	"azkaban_exporter/required/structs"
 	"azkaban_exporter/util"
 	"fmt"
 	"github.com/go-kit/log"
@@ -36,7 +36,7 @@ type azkabanCollector struct {
 	lastStatus  util.TypedDesc
 }
 
-func NewAzkabanCollector(namespace string, logger log.Logger) (required.Collector, error) {
+func NewAzkabanCollector(namespace string, logger log.Logger) (structs.Collector, error) {
 	var (
 		labelProject     = []string{"project"}
 		labelProjectFlow = []string{"project", "flow"}

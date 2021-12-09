@@ -2,7 +2,7 @@ package util
 
 import (
 	prom2 "azkaban_exporter/pkg/prometheus"
-	"azkaban_exporter/required"
+	"azkaban_exporter/required/structs"
 	"github.com/go-kit/log"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -12,8 +12,8 @@ const (
 	DefaultDisabled = false
 )
 
-// RegisterCollector After you implement the required.Collector, you should call this func to regist it.
-func RegisterCollector(collector string, isDefaultEnabled bool, factory func(namespace string, logger log.Logger) (required.Collector, error)) {
+// RegisterCollector After you implement the structs.Collector, you should call this func to regist it.
+func RegisterCollector(collector string, isDefaultEnabled bool, factory func(namespace string, logger log.Logger) (structs.Collector, error)) {
 	prom2.RegisterCollector(collector, isDefaultEnabled, factory)
 }
 
