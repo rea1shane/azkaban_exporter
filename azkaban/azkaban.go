@@ -116,7 +116,7 @@ func (a *Azkaban) GetExecutions(projectName string, flowId string, startIndex in
 	wg.Add(len(Executions.Executions))
 	for _, execution := range Executions.Executions {
 		go func(execution api.Execution) {
-			wg.Done()
+			defer wg.Done()
 			ch <- Execution{
 				SubmitTime:  execution.SubmitTime,
 				SubmitUser:  execution.SubmitUser,
