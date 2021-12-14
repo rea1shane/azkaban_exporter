@@ -27,7 +27,7 @@ func GetSingletonHttp() *SingletonHttp {
 }
 
 func (h *SingletonHttp) Request(req *http.Request, ctx context.Context, responseStruct interface{}) error {
-	req.WithContext(ctx)
+	req = req.WithContext(ctx)
 	res, err := h.Client.Do(req)
 	if err != nil {
 		return err

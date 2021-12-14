@@ -53,7 +53,7 @@ func FetchUserProjects(p FetchUserProjectsParam, ctx context.Context) ([]Project
 
 // FetchFlowsOfAProject
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-flows-of-a-project
-func FetchFlowsOfAProject(p FetchFlowsOfAProjectParaam, ctx context.Context) ([]Flow, error) {
+func FetchFlowsOfAProject(p FetchFlowsOfAProjectParam, ctx context.Context) ([]Flow, error) {
 	method := "GET"
 	response := ProjectFlows{}
 	url := p.ServerUrl + "/manager?ajax=fetchprojectflows&session.id=" + p.SessionId + "&project=" + p.ProjectName

@@ -4,6 +4,7 @@ import (
 	"azkaban_exporter/azkaban/api"
 	"context"
 	"fmt"
+	"github.com/go-kratos/kratos/pkg/sync/errgroup"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"sync"
@@ -35,7 +36,7 @@ type Azkaban struct {
 
 type ProjectWithFlows struct {
 	ProjectName string
-	FlowIds     chan string
+	FlowIds     []string
 }
 
 type Execution struct {
@@ -68,57 +69,50 @@ func GetAzkaban() *Azkaban {
 	return instance
 }
 
-func (a *Azkaban) GetProjectWithFlows(ch chan<- ProjectWithFlows) error {
-	err := a.auth()
+func (a *Azkaban) GetProjectWithFlows(ctx context.Context, ch chan<- ProjectWithFlows) error {
+	err := a.auth(ctx)
 	if err != nil {
 		return err
 	}
-	// TODO 修改 context.Background
 	projects, err := api.FetchUserProjects(api.FetchUserProjectsParam{
 		ServerUrl: a.Server.Url,
 		SessionId: a.User.Session.SessionId,
-	}, context.Background())
+	}, ctx)
 	if err != nil {
 		return err
 	}
-	wgProjects := sync.WaitGroup{}
-	wgProjects.Add(len(projects))
+	group := errgroup.WithCancel(ctx)
 	for _, project := range projects {
-		go func(project api.Project) {
-			defer wgProjects.Done()
-			elem := ProjectWithFlows{
-				ProjectName: project.ProjectName,
-				FlowIds:     make(chan string),
+		p := project
+		group.Go(func(ctx context.Context) error {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+				flows, err := api.FetchFlowsOfAProject(api.FetchFlowsOfAProjectParam{
+					ServerUrl:   a.Server.Url,
+					SessionId:   a.User.Session.SessionId,
+					ProjectName: p.ProjectName,
+				}, ctx)
+				if err != nil {
+					return err
+				}
+				var ids []string
+				for _, flow := range flows {
+					ids = append(ids, flow.FlowId)
+				}
+				ch <- ProjectWithFlows{
+					ProjectName: p.ProjectName,
+					FlowIds:     ids,
+				}
+				return nil
 			}
-			ch <- elem
-			// TODO 修改 context.Background
-			flows, err := api.FetchFlowsOfAProject(api.FetchFlowsOfAProjectParaam{
-				ServerUrl:   a.Server.Url,
-				SessionId:   a.User.Session.SessionId,
-				ProjectName: elem.ProjectName,
-			}, context.Background())
-			if err != nil {
-				// TODO 处理 panic
-				panic(fmt.Errorf(err.Error()))
-			}
-			wgFlows := sync.WaitGroup{}
-			wgFlows.Add(len(flows))
-			for _, flow := range flows {
-				go func(flow api.Flow) {
-					defer wgFlows.Done()
-					elem.FlowIds <- flow.FlowId
-				}(flow)
-			}
-			wgFlows.Wait()
-			close(elem.FlowIds)
-		}(project)
+		})
 	}
-	wgProjects.Wait()
-	return nil
+	return group.Wait()
 }
 
-func (a *Azkaban) GetExecutions(projectName string, flowId string, startIndex int, listLength int, ch chan<- Execution) error {
-	// TODO 修改 context.Background
+func (a *Azkaban) GetExecutions(ctx context.Context, projectName string, flowId string, startIndex int, listLength int, ch chan<- Execution) error {
 	Executions, err := api.FetchExecutionsOfAFlow(api.FetchExecutionsOfAFlowParam{
 		ServerUrl:   a.Server.Url,
 		SessionId:   a.User.Session.SessionId,
@@ -126,42 +120,35 @@ func (a *Azkaban) GetExecutions(projectName string, flowId string, startIndex in
 		FlowId:      flowId,
 		StartIndex:  startIndex,
 		ListLength:  listLength,
-	}, context.Background())
+	}, ctx)
 	if err != nil {
 		return err
 	}
-	wg := sync.WaitGroup{}
-	wg.Add(len(Executions.Executions))
 	for _, execution := range Executions.Executions {
-		go func(execution api.Execution) {
-			defer wg.Done()
-			ch <- Execution{
-				SubmitTime:  execution.SubmitTime,
-				SubmitUser:  execution.SubmitUser,
-				StartTime:   execution.StartTime,
-				EndTime:     execution.EndTime,
-				ProjectName: projectName,
-				FlowID:      execution.FlowID,
-				ExecID:      execution.ExecID,
-				Status:      execution.Status,
-			}
-		}(execution)
+		ch <- Execution{
+			SubmitTime:  execution.SubmitTime,
+			SubmitUser:  execution.SubmitUser,
+			StartTime:   execution.StartTime,
+			EndTime:     execution.EndTime,
+			ProjectName: projectName,
+			FlowID:      execution.FlowID,
+			ExecID:      execution.ExecID,
+			Status:      execution.Status,
+		}
 	}
-	wg.Wait()
 	return nil
 }
 
 // auth and check session < 23h:50m
-func (a *Azkaban) auth() error {
+func (a *Azkaban) auth(ctx context.Context) error {
 	if a.User.Session.AuthTimestamp != 0 && time.Now().Unix()-a.User.Session.AuthTimestamp < 85800 {
 		return nil
 	}
-	// TODO 修改 context.Background
 	sessionId, err := api.Authenticate(api.AuthenticateParam{
 		ServerUrl: a.Server.Url,
 		Username:  a.User.Username,
 		Password:  a.User.Password,
-	}, context.Background())
+	}, ctx)
 	if err != nil {
 		return err
 	}

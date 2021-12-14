@@ -4,10 +4,10 @@ import (
 	"azkaban_exporter/required/functions"
 	"azkaban_exporter/required/structs"
 	"azkaban_exporter/util"
-	"fmt"
+	"context"
 	"github.com/go-kit/log"
+	"github.com/go-kratos/kratos/pkg/sync/errgroup"
 	"github.com/prometheus/client_golang/prometheus"
-	"sync"
 	"time"
 )
 
@@ -105,18 +105,19 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 
 		lastStatusRecorder = map[string]map[string]int{}
 	)
-	go func() {
-		err := azkaban.GetProjectWithFlows(projectsWithFlows)
-		if err != nil {
-			// TODO 处理 panic
-			panic(fmt.Errorf(err.Error()))
-		}
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 1500*time.Millisecond)
+	defer cancelFunc()
+	group := errgroup.WithCancel(ctx)
+	group.Go(func(ctx context.Context) error {
+		err := azkaban.GetProjectWithFlows(ctx, projectsWithFlows)
 		close(projectsWithFlows)
-	}()
-	go func() {
-		wg := sync.WaitGroup{}
+		return err
+	})
+	group.Go(func(ctx context.Context) error {
+		g := errgroup.WithCancel(ctx)
 		for projectWithFlows := range projectsWithFlows {
 			projectName := projectWithFlows.ProjectName
+			flowIds := projectWithFlows.FlowIds
 			projects++
 			preparingCounter[projectName] = 0
 			runningCounter[projectName] = 0
@@ -126,27 +127,31 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 			running1440Counter[projectName] = 0
 			runningAttemptCounter[projectName] = 0
 			lastStatusRecorder[projectName] = map[string]int{}
-			wg.Add(1)
-			go func(projectName string, flowIds <-chan string) {
-				defer wg.Done()
-				wg2 := sync.WaitGroup{}
-				for flowId := range flowIds {
-					wg2.Add(1)
-					go func(flowId string) {
-						defer wg2.Done()
-						err := azkaban.GetExecutions(projectName, flowId, startIndex, listLength, executions)
-						if err != nil {
-							// TODO 处理 panic
-							panic(fmt.Errorf(err.Error()))
-						}
-					}(flowId)
+			g.Go(func(ctx context.Context) error {
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				default:
+					for _, flowId := range flowIds {
+						fid := flowId
+						g.Go(func(ctx context.Context) error {
+							select {
+							case <-ctx.Done():
+								return ctx.Err()
+							default:
+								err := azkaban.GetExecutions(ctx, projectName, fid, startIndex, listLength, executions)
+								return err
+							}
+						})
+					}
+					return nil
 				}
-				wg2.Wait()
-			}(projectName, projectWithFlows.FlowIds)
+			})
 		}
-		wg.Wait()
+		err := g.Wait()
 		close(executions)
-	}()
+		return err
+	})
 	for execution := range executions {
 		switch execution.Status {
 		case "PREPARING":
@@ -173,58 +178,95 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 			lastStatusRecorder[execution.ProjectName][execution.FlowID] = -1
 		}
 	}
-	wg := sync.WaitGroup{}
-	wg.Add(8)
-	go func() {
-		defer wg.Done()
-		ch <- c.projects.MustNewConstMetric(float64(projects))
-	}()
-	go func() {
-		defer wg.Done()
-		for projectName, num := range preparingCounter {
-			ch <- c.preparing.MustNewConstMetric(float64(num), projectName)
+	group.Go(func(ctx context.Context) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			ch <- c.projects.MustNewConstMetric(float64(projects))
+			return nil
 		}
-	}()
-	go func() {
-		defer wg.Done()
-		for projectName, num := range runningCounter {
-			ch <- c.running.MustNewConstMetric(float64(num), projectName)
-		}
-	}()
-	go func() {
-		defer wg.Done()
-		for projectName, num := range running0Counter {
-			ch <- c.running0.MustNewConstMetric(float64(num), projectName)
-		}
-	}()
-	go func() {
-		defer wg.Done()
-		for projectName, num := range running60Counter {
-			ch <- c.running60.MustNewConstMetric(float64(num), projectName)
-		}
-	}()
-	go func() {
-		defer wg.Done()
-		for projectName, num := range running300Counter {
-			ch <- c.running300.MustNewConstMetric(float64(num), projectName)
-		}
-	}()
-	go func() {
-		defer wg.Done()
-		for projectName, num := range running1440Counter {
-			ch <- c.running1440.MustNewConstMetric(float64(num), projectName)
-		}
-	}()
-	go func() {
-		defer wg.Done()
-		for projectName, flowAndflag := range lastStatusRecorder {
-			for flowId, flag := range flowAndflag {
-				ch <- c.lastStatus.MustNewConstMetric(float64(flag), projectName, flowId)
+	})
+	group.Go(func(ctx context.Context) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			for projectName, num := range preparingCounter {
+				ch <- c.preparing.MustNewConstMetric(float64(num), projectName)
 			}
+			return nil
 		}
-	}()
-	wg.Wait()
-	return nil
+	})
+	group.Go(func(ctx context.Context) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			for projectName, num := range runningCounter {
+				ch <- c.running.MustNewConstMetric(float64(num), projectName)
+			}
+			return nil
+		}
+	})
+	group.Go(func(ctx context.Context) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			for projectName, num := range running0Counter {
+				ch <- c.running0.MustNewConstMetric(float64(num), projectName)
+			}
+			return nil
+		}
+	})
+	group.Go(func(ctx context.Context) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			for projectName, num := range running60Counter {
+				ch <- c.running60.MustNewConstMetric(float64(num), projectName)
+			}
+			return nil
+		}
+	})
+	group.Go(func(ctx context.Context) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			for projectName, num := range running300Counter {
+				ch <- c.running300.MustNewConstMetric(float64(num), projectName)
+			}
+			return nil
+		}
+	})
+	group.Go(func(ctx context.Context) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			for projectName, num := range running1440Counter {
+				ch <- c.running1440.MustNewConstMetric(float64(num), projectName)
+			}
+			return nil
+		}
+	})
+	group.Go(func(ctx context.Context) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			for projectName, flowAndflag := range lastStatusRecorder {
+				for flowId, flag := range flowAndflag {
+					ch <- c.lastStatus.MustNewConstMetric(float64(flag), projectName, flowId)
+				}
+			}
+			return nil
+		}
+	})
+	return group.Wait()
 }
 
 // inRange determine whether a number belongs to a range.

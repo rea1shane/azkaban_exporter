@@ -11,7 +11,7 @@ type FetchUserProjectsParam struct {
 	SessionId string
 }
 
-type FetchFlowsOfAProjectParaam struct {
+type FetchFlowsOfAProjectParam struct {
 	ServerUrl   string
 	SessionId   string
 	ProjectName string
