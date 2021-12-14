@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -25,7 +26,8 @@ func GetSingletonHttp() *SingletonHttp {
 	return instance
 }
 
-func (h *SingletonHttp) Request(req *http.Request, responseStruct interface{}) error {
+func (h *SingletonHttp) Request(req *http.Request, ctx context.Context, responseStruct interface{}) error {
+	req.WithContext(ctx)
 	res, err := h.Client.Do(req)
 	if err != nil {
 		return err

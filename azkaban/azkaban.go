@@ -2,6 +2,7 @@ package azkaban
 
 import (
 	"azkaban_exporter/azkaban/api"
+	"context"
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -72,7 +73,11 @@ func (a *Azkaban) GetProjectWithFlows(ch chan<- ProjectWithFlows) error {
 	if err != nil {
 		return err
 	}
-	projects, err := api.FetchUserProjects(a.Server.Url, a.User.Session.SessionId)
+	// TODO 修改 context.Background
+	projects, err := api.FetchUserProjects(api.FetchUserProjectsParam{
+		ServerUrl: a.Server.Url,
+		SessionId: a.User.Session.SessionId,
+	}, context.Background())
 	if err != nil {
 		return err
 	}
@@ -86,7 +91,12 @@ func (a *Azkaban) GetProjectWithFlows(ch chan<- ProjectWithFlows) error {
 				FlowIds:     make(chan string),
 			}
 			ch <- elem
-			flows, err := api.FetchFlowsOfAProject(a.Server.Url, a.User.Session.SessionId, elem.ProjectName)
+			// TODO 修改 context.Background
+			flows, err := api.FetchFlowsOfAProject(api.FetchFlowsOfAProjectParaam{
+				ServerUrl:   a.Server.Url,
+				SessionId:   a.User.Session.SessionId,
+				ProjectName: elem.ProjectName,
+			}, context.Background())
 			if err != nil {
 				// TODO 处理 panic
 				panic(fmt.Errorf(err.Error()))
@@ -108,7 +118,15 @@ func (a *Azkaban) GetProjectWithFlows(ch chan<- ProjectWithFlows) error {
 }
 
 func (a *Azkaban) GetExecutions(projectName string, flowId string, startIndex int, listLength int, ch chan<- Execution) error {
-	Executions, err := api.FetchExecutionsOfAFlow(a.Server.Url, a.User.Session.SessionId, projectName, flowId, startIndex, listLength)
+	// TODO 修改 context.Background
+	Executions, err := api.FetchExecutionsOfAFlow(api.FetchExecutionsOfAFlowParam{
+		ServerUrl:   a.Server.Url,
+		SessionId:   a.User.Session.SessionId,
+		ProjectName: projectName,
+		FlowId:      flowId,
+		StartIndex:  startIndex,
+		ListLength:  listLength,
+	}, context.Background())
 	if err != nil {
 		return err
 	}
@@ -138,7 +156,12 @@ func (a *Azkaban) auth() error {
 	if a.User.Session.AuthTimestamp != 0 && time.Now().Unix()-a.User.Session.AuthTimestamp < 85800 {
 		return nil
 	}
-	sessionId, err := api.Authenticate(a.Server.Url, a.User.Username, a.User.Password)
+	// TODO 修改 context.Background
+	sessionId, err := api.Authenticate(api.AuthenticateParam{
+		ServerUrl: a.Server.Url,
+		Username:  a.User.Username,
+		Password:  a.User.Password,
+	}, context.Background())
 	if err != nil {
 		return err
 	}
