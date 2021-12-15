@@ -139,8 +139,7 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 							case <-ctx.Done():
 								return ctx.Err()
 							default:
-								err := azkaban.GetExecutions(ctx, projectName, fid, startIndex, listLength, executions)
-								return err
+								return azkaban.GetExecutions(ctx, projectName, fid, startIndex, listLength, executions)
 							}
 						})
 					}
