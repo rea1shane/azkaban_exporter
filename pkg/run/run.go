@@ -17,7 +17,7 @@ import (
 	"strings"
 )
 
-func Run(e structs.Exporter, errCh chan error) {
+func Run(e structs.Exporter) {
 	exporterInfo := exporter.Exporter{
 		Namespace:    strings.ToLower(e.MonitorTargetName),
 		ExporterName: strings.ToLower(e.MonitorTargetName) + "_exporter",

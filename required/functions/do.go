@@ -7,8 +7,8 @@ import (
 	"github.com/go-kit/log"
 )
 
-func Run(e structs.Exporter, errCh chan error) {
-	run.Run(e, errCh)
+func Run(e structs.Exporter) {
+	run.Run(e)
 }
 
 // RegisterCollector After you implement the structs.Collector, you should call this func to regist it.
