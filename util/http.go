@@ -11,7 +11,7 @@ import (
 )
 
 type SingletonHttp struct {
-	Client *http.Client
+	client *http.Client
 }
 
 var instance *SingletonHttp
@@ -20,7 +20,7 @@ var once sync.Once
 func GetSingletonHttp() *SingletonHttp {
 	once.Do(func() {
 		instance = &SingletonHttp{
-			Client: &http.Client{},
+			client: &http.Client{},
 		}
 	})
 	return instance
@@ -28,7 +28,7 @@ func GetSingletonHttp() *SingletonHttp {
 
 func (h *SingletonHttp) Request(req *http.Request, ctx context.Context, responseStruct interface{}) error {
 	req = req.WithContext(ctx)
-	res, err := h.Client.Do(req)
+	res, err := h.client.Do(req)
 	if err != nil {
 		return failure.Wrap(err)
 	}
