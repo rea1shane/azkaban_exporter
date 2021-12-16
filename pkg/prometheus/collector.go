@@ -3,7 +3,6 @@ package prometheus
 import (
 	"azkaban_exporter/pkg/exporter"
 	"azkaban_exporter/required/structs"
-	"errors"
 	"fmt"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -126,11 +125,9 @@ func Execute(name string, c structs.Collector, ch chan<- prometheus.Metric, logg
 	var success float64
 
 	if err != nil {
-		if IsNoDataError(err) {
-			_ = level.Debug(logger).Log("msg", "collector returned no data", "name", name, "duration_seconds", duration.Seconds(), "err", err)
-		} else {
-			_ = level.Error(logger).Log("msg", "collector failed", "name", name, "duration_seconds", duration.Seconds(), "err", err)
-		}
+		_ = level.Error(logger).Log("msg", "collector failed", "name", name, "duration_seconds", duration.Seconds())
+		// TODO 使用日志格式化输出
+		fmt.Printf("%+v", err)
 		success = 0
 	} else {
 		_ = level.Debug(logger).Log("msg", "collector succeeded", "name", name, "duration_seconds", duration.Seconds())
@@ -138,11 +135,4 @@ func Execute(name string, c structs.Collector, ch chan<- prometheus.Metric, logg
 	}
 	ch <- prometheus.MustNewConstMetric(scrapeDurationDesc, prometheus.GaugeValue, duration.Seconds(), name)
 	ch <- prometheus.MustNewConstMetric(scrapeSuccessDesc, prometheus.GaugeValue, success, name)
-}
-
-// ErrNoData indicates the collector found no data to collect, but had no other error.
-var ErrNoData = errors.New("collector returned no data")
-
-func IsNoDataError(err error) bool {
-	return err == ErrNoData
 }

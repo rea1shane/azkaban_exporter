@@ -15,9 +15,3 @@ func Run(e structs.Exporter) {
 func RegisterCollector(collector string, isDefaultEnabled bool, factory func(namespace string, logger log.Logger) (structs.Collector, error)) {
 	prometheus.RegisterCollector(collector, isDefaultEnabled, factory)
 }
-
-// ErrNoData indicates the collector found no data to collect, but had no other error.
-// When metric data is empty, return this error
-func ErrNoData() error {
-	return prometheus.ErrNoData
-}

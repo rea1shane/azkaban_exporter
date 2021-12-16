@@ -2,14 +2,17 @@
 
 ## TODO
 
-- 协程写数组改为写 ch
-- 去掉调试用的 panic
+- 打包为 docker 镜像
+
+## Use
 
 To see all available configuration flags:
 
 ```shell
-./azkaban_exporter -h
+$ azkaban_exporter -h
 ```
+
+## 特性
 
 **更改为单个用户**, example: `watcher / watcher`
 

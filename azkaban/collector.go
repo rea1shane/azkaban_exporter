@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/go-kit/log"
 	"github.com/go-kratos/kratos/pkg/sync/errgroup"
+	"github.com/morikuni/failure"
 	"github.com/prometheus/client_golang/prometheus"
 	"time"
 )
@@ -265,7 +266,11 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 			return nil
 		}
 	})
-	return group.Wait()
+	err := group.Wait()
+	if ctx.Err() != nil {
+		return failure.Wrap(ctx.Err())
+	}
+	return err
 }
 
 // inRange determine whether a number belongs to a range.

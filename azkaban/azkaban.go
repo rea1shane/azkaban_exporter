@@ -3,7 +3,6 @@ package azkaban
 import (
 	"azkaban_exporter/azkaban/api"
 	"context"
-	"fmt"
 	"github.com/go-kratos/kratos/pkg/sync/errgroup"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -58,11 +57,11 @@ func GetAzkaban() *Azkaban {
 		// TODO 使用传参传入配置文件路径
 		yamlFile, err := ioutil.ReadFile("azkaban/conf/azkaban.yml")
 		if err != nil {
-			panic(fmt.Errorf(err.Error()))
+			panic(err)
 		}
 		err = yaml.Unmarshal(yamlFile, &instance)
 		if err != nil {
-			panic(fmt.Errorf(err.Error()))
+			panic(err)
 		}
 		instance.Server.Url = instance.Server.Protocol + "://" + instance.Server.Host + ":" + instance.Server.Port
 	})
