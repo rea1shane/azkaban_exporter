@@ -4,16 +4,16 @@ import (
 	"azkaban_exporter/pkg/exporter"
 	"azkaban_exporter/required/structs"
 	"fmt"
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"strings"
 	"sync"
 	"time"
 )
 
 var (
-	Factories              = make(map[string]func(namespace string, logger log.Logger) (structs.Collector, error)) // Factories records all collector's construction method
+	Factories              = make(map[string]func(namespace string, logger *log.Entry) (structs.Collector, error)) // Factories records all collector's construction method
 	InitiatedCollectorsMtx = sync.Mutex{}                                                                          // InitiatedCollectorsMtx avoid thread conflicts
 	InitiatedCollectors    = make(map[string]structs.Collector)                                                    // InitiatedCollectors record the collectors that have been initialized in the method NewTargetCollector (To reduce the collector's construction method call)
 	CollectorState         = make(map[string]*bool)                                                                // CollectorState records all collector's default state (enable or disable)
@@ -22,7 +22,7 @@ var (
 
 type TargetCollector struct {
 	Collectors         map[string]structs.Collector
-	Logger             log.Logger
+	Logger             *log.Logger
 	ScrapeDurationDesc *prometheus.Desc
 	ScrapeSuccessDesc  *prometheus.Desc
 }
@@ -45,7 +45,7 @@ func (t TargetCollector) Collect(ch chan<- prometheus.Metric) {
 }
 
 // NewTargetCollector creates a new TargetCollector.
-func NewTargetCollector(exporter exporter.Exporter, logger log.Logger, filters ...string) (*TargetCollector, error) {
+func NewTargetCollector(exporter exporter.Exporter, logger *log.Logger, filters ...string) (*TargetCollector, error) {
 	f := make(map[string]bool)
 	for _, filter := range filters {
 		enabled, exist := CollectorState[filter]
@@ -67,7 +67,7 @@ func NewTargetCollector(exporter exporter.Exporter, logger log.Logger, filters .
 		if collector, ok := InitiatedCollectors[key]; ok {
 			collectors[key] = collector
 		} else {
-			collector, err := Factories[key](exporter.Namespace, log.With(logger, "collector", key))
+			collector, err := Factories[key](exporter.Namespace, logger.WithField("collector", key))
 			if err != nil {
 				return nil, err
 			}
@@ -93,7 +93,7 @@ func NewTargetCollector(exporter exporter.Exporter, logger log.Logger, filters .
 	}, nil
 }
 
-func RegisterCollector(collector string, isDefaultEnabled bool, factory func(namespace string, logger log.Logger) (structs.Collector, error)) {
+func RegisterCollector(collector string, isDefaultEnabled bool, factory func(namespace string, logger *log.Entry) (structs.Collector, error)) {
 	var helpDefaultState string
 	if isDefaultEnabled {
 		helpDefaultState = "enabled"
@@ -118,19 +118,24 @@ func CollectorFlagAction(collector string) func(ctx *kingpin.ParseContext) error
 	}
 }
 
-func Execute(name string, c structs.Collector, ch chan<- prometheus.Metric, logger log.Logger, scrapeDurationDesc *prometheus.Desc, scrapeSuccessDesc *prometheus.Desc) {
+func Execute(name string, c structs.Collector, ch chan<- prometheus.Metric, logger *log.Logger, scrapeDurationDesc *prometheus.Desc, scrapeSuccessDesc *prometheus.Desc) {
 	begin := time.Now()
 	err := c.Update(ch)
 	duration := time.Since(begin)
 	var success float64
 
 	if err != nil {
-		_ = level.Error(logger).Log("msg", "collector failed", "name", name, "duration_seconds", duration.Seconds())
-		// TODO 使用日志格式化输出
-		fmt.Printf("%+v", err)
+		logger.
+			WithError(err).
+			WithField("name", name).
+			WithField("duration_seconds", fmt.Sprintf("%v", duration.Milliseconds())+"ms").
+			Error("collector failed\n└──" + strings.Replace(strings.TrimRight(fmt.Sprintf("%+v", err), "\n"), "\n", "\n     ", -1))
 		success = 0
 	} else {
-		_ = level.Debug(logger).Log("msg", "collector succeeded", "name", name, "duration_seconds", duration.Seconds())
+		logger.
+			WithField("name", name).
+			WithField("duration_seconds", fmt.Sprintf("%v", duration.Milliseconds())+"ms").
+			Debug("collector succeeded")
 		success = 1
 	}
 	ch <- prometheus.MustNewConstMetric(scrapeDurationDesc, prometheus.GaugeValue, duration.Seconds(), name)

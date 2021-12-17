@@ -14,11 +14,13 @@ type SingletonHttp struct {
 	client *http.Client
 }
 
-var instance *SingletonHttp
-var once sync.Once
+var (
+	instance *SingletonHttp
+	onceHttp sync.Once
+)
 
 func GetSingletonHttp() *SingletonHttp {
-	once.Do(func() {
+	onceHttp.Do(func() {
 		instance = &SingletonHttp{
 			client: &http.Client{},
 		}

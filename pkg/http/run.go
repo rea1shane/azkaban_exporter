@@ -1,23 +1,27 @@
-package run
+package http
 
 import (
 	"azkaban_exporter/pkg/exporter"
+	"azkaban_exporter/pkg/middleware"
 	"azkaban_exporter/pkg/prometheus"
 	"azkaban_exporter/required/structs"
+	"context"
 	"fmt"
-	"github.com/go-kit/log/level"
-	"github.com/prometheus/common/promlog"
-	"github.com/prometheus/common/promlog/flag"
+	"github.com/gin-gonic/gin"
 	"github.com/prometheus/common/version"
-	"github.com/prometheus/exporter-toolkit/web"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"net/http"
 	"os"
-	"os/user"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 )
 
-func Run(e structs.Exporter) {
+var srv *http.Server
+
+func Run(logger *log.Logger, e structs.Exporter) {
 	exporterInfo := exporter.Exporter{
 		Namespace:    strings.ToLower(e.MonitorTargetName),
 		ExporterName: strings.ToLower(e.MonitorTargetName) + "_exporter",
@@ -39,28 +43,22 @@ func Run(e structs.Exporter) {
 			"web.max-requests",
 			"Maximum number of parallel scrape requests. Use 0 to disable.",
 		).Default("40").Int()
-		configFile = kingpin.Flag(
-			"web.config",
-			"[EXPERIMENTAL] Path to config yaml file that can enable TLS or authentication.",
-		).Default("").String()
 	)
 
-	promlogConfig := &promlog.Config{}
-	flag.AddFlags(kingpin.CommandLine, promlogConfig)
 	kingpin.Version(version.Print(exporterInfo.ExporterName))
 	kingpin.CommandLine.UsageWriter(os.Stdout)
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
-	logger := promlog.New(promlogConfig)
 
-	_ = level.Info(logger).Log("msg", "Starting "+exporterInfo.ExporterName, "version", version.Info())
-	_ = level.Info(logger).Log("msg", "Build context", "build_context", version.BuildContext())
-	if userCurrent, err := user.Current(); err == nil && userCurrent.Uid == "0" {
-		_ = level.Warn(logger).Log("msg", e.MonitorTargetName+" Exporter is running as root user. This exporter is designed to run as unpriviledged user, root is not required.")
-	}
+	logger.Info("Starting "+exporterInfo.ExporterName, "version", version.Info())
+	logger.Info("Build context", version.BuildContext())
 
-	http.Handle(*metricsPath, prometheus.NewHandler(exporterInfo, !*disableExporterMetrics, *maxRequests, logger))
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	app := gin.New()
+	app.Use(
+		middleware.ToStdout(logger),
+		gin.Recovery(),
+	)
+	app.GET("/", gin.WrapF(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`<html>
 			<head><title>` + e.MonitorTargetName + ` Exporter</title></head>
 			<body>
@@ -68,12 +66,31 @@ func Run(e structs.Exporter) {
 			<p><a href="` + *metricsPath + `">Metrics</a></p>
 			</body>
 			</html>`))
-	})
+	}))
+	app.GET(*metricsPath, gin.WrapH(prometheus.NewHandler(exporterInfo, !*disableExporterMetrics, *maxRequests, logger)))
 
-	_ = level.Info(logger).Log("msg", "Listening on", "address", *listenAddress)
-	server := &http.Server{Addr: *listenAddress}
-	if err := web.ListenAndServe(server, *configFile, logger); err != nil {
-		_ = level.Error(logger).Log("err", err)
-		os.Exit(1)
+	logger.Info("Listening on address ", *listenAddress)
+	srv = &http.Server{
+		Addr:    *listenAddress,
+		Handler: app,
+	}
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			panic(err)
+		}
+	}()
+	shutdown(logger)
+}
+
+func shutdown(logger *log.Logger) {
+	quit := make(chan os.Signal)
+	signal.Notify(quit, os.Interrupt, os.Kill, syscall.SIGQUIT)
+	<-quit
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.WithError(err).Error("server shutdown")
+		return
 	}
 }

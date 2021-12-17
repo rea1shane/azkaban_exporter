@@ -5,10 +5,10 @@ import (
 	"azkaban_exporter/required/structs"
 	"azkaban_exporter/util"
 	"context"
-	"github.com/go-kit/log"
 	"github.com/go-kratos/kratos/pkg/sync/errgroup"
 	"github.com/morikuni/failure"
 	"github.com/prometheus/client_golang/prometheus"
+	log "github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -27,7 +27,7 @@ func init() {
 }
 
 type azkabanCollector struct {
-	logger      log.Logger
+	logger      *log.Entry
 	projects    util.TypedDesc
 	preparing   util.TypedDesc
 	running     util.TypedDesc
@@ -38,7 +38,7 @@ type azkabanCollector struct {
 	lastStatus  util.TypedDesc
 }
 
-func NewAzkabanCollector(namespace string, logger log.Logger) (structs.Collector, error) {
+func NewAzkabanCollector(namespace string, logger *log.Entry) (structs.Collector, error) {
 	var (
 		labelProject     = []string{"project"}
 		labelProjectFlow = []string{"project", "flow"}
