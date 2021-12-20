@@ -11,11 +11,11 @@ import (
 
 func main() {
 	logger := util.GetLogger()
-	logger.SetLevel(log.DebugLevel)
+	logger.SetLevel(log.InfoLevel)
 	gin.SetMode(gin.ReleaseMode)
 	azkabanExporter := structs.Exporter{
 		MonitorTargetName: "Azkaban",
 		DefaultPort:       9900,
 	}
-	functions.Run(logger, azkabanExporter)
+	functions.Start(logger, azkabanExporter)
 }

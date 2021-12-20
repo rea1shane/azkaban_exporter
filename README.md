@@ -3,6 +3,8 @@
 ## TODO
 
 - 打包为 docker 镜像
+- 传参设置日志级别
+- 更改 required 包名
 
 ## Use
 

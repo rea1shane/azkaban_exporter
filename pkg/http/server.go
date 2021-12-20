@@ -1,16 +1,15 @@
 package http
 
 import (
+	"azkaban_exporter/pkg/args"
 	"azkaban_exporter/pkg/exporter"
 	"azkaban_exporter/pkg/middleware"
 	"azkaban_exporter/pkg/prometheus"
 	"azkaban_exporter/required/structs"
 	"context"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/common/version"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/alecthomas/kingpin.v2"
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,34 +20,14 @@ import (
 
 var srv *http.Server
 
-func Run(logger *log.Logger, e structs.Exporter) {
+func Start(logger *log.Logger, e structs.Exporter) {
 	exporterInfo := exporter.Exporter{
 		Namespace:    strings.ToLower(e.MonitorTargetName),
 		ExporterName: strings.ToLower(e.MonitorTargetName) + "_exporter",
+		DefaultPort:  e.DefaultPort,
 	}
-	var (
-		listenAddress = kingpin.Flag(
-			"web.listen-address",
-			"Address on which to expose metrics and web interface.",
-		).Default(fmt.Sprintf(":%d", e.DefaultPort)).String()
-		metricsPath = kingpin.Flag(
-			"web.telemetry-path",
-			"Path under which to expose metrics.",
-		).Default("/metrics").String()
-		disableExporterMetrics = kingpin.Flag(
-			"web.disable-exporter-metrics",
-			"Exclude metrics about the exporter itself (promhttp_*, process_*, go_*).",
-		).Default("false").Bool()
-		maxRequests = kingpin.Flag(
-			"web.max-requests",
-			"Maximum number of parallel scrape requests. Use 0 to disable.",
-		).Default("40").Int()
-	)
 
-	kingpin.Version(version.Print(exporterInfo.ExporterName))
-	kingpin.CommandLine.UsageWriter(os.Stdout)
-	kingpin.HelpFlag.Short('h')
-	kingpin.Parse()
+	a := args.ParseArgs(exporterInfo)
 
 	logger.Info("Starting "+exporterInfo.ExporterName, "version", version.Info())
 	logger.Info("Build context", version.BuildContext())
@@ -63,15 +42,15 @@ func Run(logger *log.Logger, e structs.Exporter) {
 			<head><title>` + e.MonitorTargetName + ` Exporter</title></head>
 			<body>
 			<h1>` + e.MonitorTargetName + ` Exporter</h1>
-			<p><a href="` + *metricsPath + `">Metrics</a></p>
+			<p><a href="` + *a.MetricsPath + `">Metrics</a></p>
 			</body>
 			</html>`))
 	}))
-	app.GET(*metricsPath, gin.WrapH(prometheus.NewHandler(exporterInfo, !*disableExporterMetrics, *maxRequests, logger)))
+	app.GET(*a.MetricsPath, gin.WrapH(prometheus.NewHandler(exporterInfo, !*a.DisableExporterMetrics, *a.MaxRequests, logger)))
 
-	logger.Info("Listening on address ", *listenAddress)
+	logger.Info("Listening on address ", *a.ListenAddress)
 	srv = &http.Server{
-		Addr:    *listenAddress,
+		Addr:    *a.ListenAddress,
 		Handler: app,
 	}
 	go func() {
