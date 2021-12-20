@@ -55,7 +55,7 @@ var once sync.Once
 func GetAzkaban() *Azkaban {
 	once.Do(func() {
 		// TODO 使用传参传入配置文件路径
-		yamlFile, err := ioutil.ReadFile("azkaban/conf/azkaban.yml")
+		yamlFile, err := ioutil.ReadFile("conf/azkaban.yml")
 		if err != nil {
 			panic(err)
 		}
