@@ -10,7 +10,6 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/common v0.29.0
 	github.com/sirupsen/logrus v1.8.1
-	github.com/toorop/gin-logrus v0.0.0-20210225092905-2c785434f26f
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/yaml.v2 v2.4.0
 )
