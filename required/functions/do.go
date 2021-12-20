@@ -7,8 +7,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func Start(logger *log.Logger, e structs.Exporter) {
-	http.Start(logger, e)
+func Start(logger *log.Logger, e structs.Exporter, args structs.Args) {
+	http.Start(logger, e, args)
 }
 
 // RegisterCollector After you implement the structs.Collector, you should call this func to regist it.

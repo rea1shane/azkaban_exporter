@@ -14,8 +14,9 @@ func main() {
 	logger.SetLevel(log.InfoLevel)
 	gin.SetMode(gin.ReleaseMode)
 	azkabanExporter := structs.Exporter{
-		MonitorTargetName: "Azkaban",
-		DefaultPort:       9900,
+		MetricNamespace: "azkaban",
+		ExporterName:    "azkaban_exporter",
+		DefaultPort:     9900,
 	}
-	functions.Start(logger, azkabanExporter)
+	functions.Start(logger, azkabanExporter, util.ParseArgs(azkabanExporter))
 }

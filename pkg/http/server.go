@@ -1,8 +1,6 @@
 package http
 
 import (
-	"azkaban_exporter/pkg/args"
-	"azkaban_exporter/pkg/exporter"
 	"azkaban_exporter/pkg/middleware"
 	"azkaban_exporter/pkg/prometheus"
 	"azkaban_exporter/required/structs"
@@ -13,23 +11,16 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 )
 
 var srv *http.Server
 
-func Start(logger *log.Logger, e structs.Exporter) {
-	exporterInfo := exporter.Exporter{
-		Namespace:    strings.ToLower(e.MonitorTargetName),
-		ExporterName: strings.ToLower(e.MonitorTargetName) + "_exporter",
-		DefaultPort:  e.DefaultPort,
-	}
+func Start(logger *log.Logger, e structs.Exporter, args structs.Args) {
+	displayName := camelString(e.ExporterName)
 
-	a := args.ParseArgs(exporterInfo)
-
-	logger.Info("Starting "+exporterInfo.ExporterName, "version", version.Info())
+	logger.Info("Starting "+e.ExporterName, " version", version.Info())
 	logger.Info("Build context", version.BuildContext())
 
 	app := gin.New()
@@ -39,18 +30,18 @@ func Start(logger *log.Logger, e structs.Exporter) {
 	)
 	app.GET("/", gin.WrapF(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`<html>
-			<head><title>` + e.MonitorTargetName + ` Exporter</title></head>
+			<head><title>` + displayName + `</title></head>
 			<body>
-			<h1>` + e.MonitorTargetName + ` Exporter</h1>
-			<p><a href="` + *a.MetricsPath + `">Metrics</a></p>
+			<h1>` + displayName + `</h1>
+			<p><a href="` + args.MetricsPath + `">Metrics</a></p>
 			</body>
 			</html>`))
 	}))
-	app.GET(*a.MetricsPath, gin.WrapH(prometheus.NewHandler(exporterInfo, !*a.DisableExporterMetrics, *a.MaxRequests, logger)))
+	app.GET(args.MetricsPath, gin.WrapH(prometheus.NewHandler(e, !args.DisableExporterMetrics, args.MaxRequests, logger)))
 
-	logger.Info("Listening on address ", *a.ListenAddress)
+	logger.Info("Listening on address ", args.ListenAddress)
 	srv = &http.Server{
-		Addr:    *a.ListenAddress,
+		Addr:    args.ListenAddress,
 		Handler: app,
 	}
 	go func() {
@@ -72,4 +63,29 @@ func shutdown(logger *log.Logger) {
 		logger.WithError(err).Error("server shutdown")
 		return
 	}
+}
+
+func camelString(s string) string {
+	data := make([]byte, 0, len(s))
+	j := false
+	k := false
+	num := len(s) - 1
+	for i := 0; i <= num; i++ {
+		d := s[i]
+		if k == false && d >= 'A' && d <= 'Z' {
+			k = true
+		}
+		if d >= 'a' && d <= 'z' && (j || k == false) {
+			data = append(data, ' ')
+			d = d - 32
+			j = false
+			k = true
+		}
+		if k && d == '_' && num > i && s[i+1] >= 'a' && s[i+1] <= 'z' {
+			j = true
+			continue
+		}
+		data = append(data, d)
+	}
+	return string(data[:])
 }

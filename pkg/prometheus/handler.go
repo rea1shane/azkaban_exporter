@@ -1,7 +1,7 @@
 package prometheus
 
 import (
-	"azkaban_exporter/pkg/exporter"
+	"azkaban_exporter/required/structs"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	promcollectors "github.com/prometheus/client_golang/prometheus/collectors"
@@ -20,10 +20,10 @@ type Handler struct {
 	IncludeExporterMetrics  bool
 	MaxRequests             int
 	Logger                  *log.Logger
-	Exporter                exporter.Exporter
+	Exporter                structs.Exporter
 }
 
-func NewHandler(exporter exporter.Exporter, includeExporterMetrics bool, maxRequests int, logger *log.Logger) *Handler {
+func NewHandler(exporter structs.Exporter, includeExporterMetrics bool, maxRequests int, logger *log.Logger) *Handler {
 	h := &Handler{
 		ExporterMetricsRegistry: prometheus.NewRegistry(),
 		IncludeExporterMetrics:  includeExporterMetrics,
@@ -93,7 +93,7 @@ func (h *Handler) InnerHandler(filters ...string) (http.Handler, error) {
 	r := prometheus.NewRegistry()
 	r.MustRegister(version.NewCollector(h.Exporter.ExporterName))
 	if err := r.Register(targetCollector); err != nil {
-		return nil, fmt.Errorf("couldn't register "+h.Exporter.Namespace+" collector: %s", err)
+		return nil, fmt.Errorf("couldn't register "+h.Exporter.MetricNamespace+" collector: %s", err)
 	}
 	handler := promhttp.HandlerFor(
 		prometheus.Gatherers{h.ExporterMetricsRegistry, r},
