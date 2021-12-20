@@ -129,7 +129,7 @@ func Execute(name string, c structs.Collector, ch chan<- prometheus.Metric, logg
 			WithError(err).
 			WithField("name", name).
 			WithField("duration_seconds", fmt.Sprintf("%v", duration.Milliseconds())+"ms").
-			Error("collector failed\n└──" + strings.Replace(strings.TrimRight(fmt.Sprintf("%+v", err), "\n"), "\n", "\n     ", -1))
+			Error("collector failed\n└──>" + strings.Replace(strings.TrimRight(fmt.Sprintf("%+v", err), "\n"), "\n", "\n    ", -1))
 		success = 0
 	} else {
 		logger.
