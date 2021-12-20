@@ -3,11 +3,16 @@ module azkaban_exporter
 go 1.17
 
 require (
-	github.com/go-kit/log v0.1.0
+	github.com/antonfisher/nested-logrus-formatter v1.3.1
+	github.com/gin-gonic/gin v1.7.7
+	github.com/go-kratos/kratos v1.0.1
+	github.com/morikuni/failure v0.14.0
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/common v0.29.0
-	github.com/prometheus/exporter-toolkit v0.7.0
+	github.com/sirupsen/logrus v1.8.1
+	github.com/toorop/gin-logrus v0.0.0-20210225092905-2c785434f26f
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
@@ -15,20 +20,21 @@ require (
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
-	github.com/go-logfmt/logfmt v0.5.0 // indirect
-	github.com/golang/protobuf v1.4.3 // indirect
-	github.com/jpillora/backoff v1.0.0 // indirect
+	github.com/gin-contrib/sse v0.1.0 // indirect
+	github.com/go-playground/locales v0.13.0 // indirect
+	github.com/go-playground/universal-translator v0.17.0 // indirect
+	github.com/go-playground/validator/v10 v10.4.1 // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/json-iterator/go v1.1.11 // indirect
+	github.com/leodido/go-urn v1.2.1 // indirect
+	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
-	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
-	github.com/pkg/errors v0.9.1 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
+	github.com/ugorji/go/codec v1.1.7 // indirect
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e // indirect
-	golang.org/x/net v0.0.0-20210525063256-abc453219eb5 // indirect
-	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c // indirect
-	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
-	golang.org/x/text v0.3.6 // indirect
-	google.golang.org/appengine v1.6.6 // indirect
-	google.golang.org/protobuf v1.26.0-rc.1 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
+	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
+	google.golang.org/protobuf v1.27.1 // indirect
 )

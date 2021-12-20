@@ -2,6 +2,8 @@ package api
 
 import (
 	"azkaban_exporter/util"
+	"context"
+	"github.com/morikuni/failure"
 	"net/http"
 	"strconv"
 	"strings"
@@ -9,84 +11,96 @@ import (
 
 var singletonHttp = util.GetSingletonHttp()
 
+const (
+	RequestError failure.StringCode = "request error"
+)
+
 // Authenticate return azkaban.Session's SessionId
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#authenticate
-func Authenticate(serverUrl string, username string, password string) (string, error) {
+func Authenticate(p AuthenticateParam, ctx context.Context) (string, error) {
 	method := "POST"
 	response := Auth{}
-	payload := strings.NewReader("action=login&username=" + username + "&password=" + password)
-	req, err := http.NewRequest(method, serverUrl, payload)
+	payload := strings.NewReader("action=login&username=" + p.Username + "&password=" + p.Password)
+	req, err := http.NewRequest(method, p.ServerUrl, payload)
 	if err != nil {
-		return "", err
+		return "", failure.Wrap(err)
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	err = singletonHttp.Request(req, &response)
+	err = singletonHttp.Request(req, ctx, &response)
 	if err != nil {
 		return "", err
 	}
 	if response.Error != "" {
-		return "", util.ErrRequestFailure("authenticate", response.Error)
+		return "", failure.New(RequestError, failure.Context{
+			"reason": response.Error,
+		})
 	}
 	return response.SessionId, nil
 }
 
 // FetchUserProjects
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-user-projects
-func FetchUserProjects(serverUrl string, sessionId string) ([]Project, error) {
+func FetchUserProjects(p FetchUserProjectsParam, ctx context.Context) ([]Project, error) {
 	method := "GET"
 	response := UserProjects{}
-	url := serverUrl + "/index?ajax=fetchuserprojects&session.id=" + sessionId
+	url := p.ServerUrl + "/index?ajax=fetchuserprojects&session.id=" + p.SessionId
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
-		return nil, err
+		return nil, failure.Wrap(err)
 	}
-	err = singletonHttp.Request(req, &response)
+	err = singletonHttp.Request(req, ctx, &response)
 	if err != nil {
 		return nil, err
 	}
 	if response.Error != "" {
-		return nil, util.ErrRequestFailure("fetch-user-projects", response.Error)
+		return nil, failure.New(RequestError, failure.Context{
+			"reason": response.Error,
+		})
 	}
 	return response.Projects, nil
 }
 
 // FetchFlowsOfAProject
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-flows-of-a-project
-func FetchFlowsOfAProject(serverUrl string, sessionId string, projectName string) ([]Flow, error) {
+func FetchFlowsOfAProject(p FetchFlowsOfAProjectParam, ctx context.Context) ([]Flow, error) {
 	method := "GET"
 	response := ProjectFlows{}
-	url := serverUrl + "/manager?ajax=fetchprojectflows&session.id=" + sessionId + "&project=" + projectName
+	url := p.ServerUrl + "/manager?ajax=fetchprojectflows&session.id=" + p.SessionId + "&project=" + p.ProjectName
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
-		return nil, err
+		return nil, failure.Wrap(err)
 	}
-	err = singletonHttp.Request(req, &response)
+	err = singletonHttp.Request(req, ctx, &response)
 	if err != nil {
 		return nil, err
 	}
 	if response.Error != "" {
-		return nil, util.ErrRequestFailure("fetch-flows-of-a-project", response.Error)
+		return nil, failure.New(RequestError, failure.Context{
+			"reason": response.Error,
+		})
 	}
 	return response.Flows, nil
 }
 
 // FetchExecutionsOfAFlow
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-executions-of-a-flow
-func FetchExecutionsOfAFlow(serverUrl string, sessionId string, projectName string, flowId string, startIndex int, listLength int) (Executions, error) {
+func FetchExecutionsOfAFlow(p FetchExecutionsOfAFlowParam, ctx context.Context) (Executions, error) {
 	method := "GET"
 	response := Executions{}
-	url := serverUrl + "/manager?ajax=fetchFlowExecutions&session.id=" + sessionId + "&project=" + projectName + "&flow=" + flowId +
-		"&start=" + strconv.Itoa(startIndex) + "&length=" + strconv.Itoa(listLength)
+	url := p.ServerUrl + "/manager?ajax=fetchFlowExecutions&session.id=" + p.SessionId + "&project=" + p.ProjectName + "&flow=" + p.FlowId +
+		"&start=" + strconv.Itoa(p.StartIndex) + "&length=" + strconv.Itoa(p.ListLength)
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
-		return Executions{}, err
+		return Executions{}, failure.Wrap(err)
 	}
-	err = singletonHttp.Request(req, &response)
+	err = singletonHttp.Request(req, ctx, &response)
 	if err != nil {
 		return Executions{}, err
 	}
 	if response.Error != "" {
-		return Executions{}, util.ErrRequestFailure("fetch-running-executions-of-a-flow", response.Error)
+		return Executions{}, failure.New(RequestError, failure.Context{
+			"reason": response.Error,
+		})
 	}
 	return response, nil
 }
