@@ -18,10 +18,6 @@ const (
 	listLength = 1
 )
 
-var (
-	azkaban = GetAzkaban()
-)
-
 func init() {
 	functions.RegisterCollector(subsystem, util.DefaultEnabled, NewAzkabanCollector)
 }
@@ -91,6 +87,8 @@ func NewAzkabanCollector(namespace string, logger *log.Entry) (structs.Collector
 
 func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 	var (
+		azkaban = GetAzkaban()
+
 		projectsWithFlows = make(chan ProjectWithFlows)
 		executions        = make(chan Execution)
 

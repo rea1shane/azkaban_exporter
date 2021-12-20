@@ -4,6 +4,6 @@ build:
 	go build -o bin/azkaban_exporter cmd/main.go
 	cp conf/azkaban.yml ./bin
 
-run:
+build&run:
 	$(MAKE) build
-	./bin/azkaban_exporter
+	bin/azkaban_exporter --azkaban.conf=conf/azkaban.yml

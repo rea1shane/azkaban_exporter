@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "azkaban_exporter/azkaban"
+	"azkaban_exporter/azkaban"
 	"azkaban_exporter/required/functions"
 	"azkaban_exporter/required/structs"
 	"azkaban_exporter/util"
@@ -18,5 +18,5 @@ func main() {
 		ExporterName:    "azkaban_exporter",
 		DefaultPort:     9900,
 	}
-	functions.Start(logger, azkabanExporter, util.ParseArgs(azkabanExporter))
+	functions.Start(logger, azkabanExporter, azkaban.ParseArgs(azkabanExporter))
 }
