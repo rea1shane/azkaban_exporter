@@ -122,6 +122,14 @@ func (a *Azkaban) GetExecutions(ctx context.Context, projectName string, flowId 
 	if err != nil {
 		return err
 	}
+	if startIndex == 0 && len(Executions.Executions) == 0 {
+		ch <- Execution{
+			ProjectName: projectName,
+			FlowID:      flowId,
+			Status:      "NEVER RUN",
+		}
+		return nil
+	}
 	for _, execution := range Executions.Executions {
 		ch <- Execution{
 			SubmitTime:  execution.SubmitTime,
