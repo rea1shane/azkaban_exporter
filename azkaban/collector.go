@@ -79,7 +79,7 @@ func NewAzkabanCollector(namespace string, logger *log.Entry) (structs.Collector
 		},
 		lastStatus: util.TypedDesc{
 			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, subsystem, "last_status"),
-				"flow last execution status flag, (-1=UNKNOW / 0=FAILED / 1=SUCCEEDED / 2=RUNNING / 3=PREPARING)", labelProjectFlow, nil),
+				"flow last execution status flag, (-2=KILLED / -1=UNKNOW / 0=FAILED / 1=SUCCEEDED / 2=RUNNING / 3=PREPARING)", labelProjectFlow, nil),
 			ValueType: prometheus.GaugeValue,
 		},
 	}, nil
@@ -172,6 +172,8 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 			lastStatusRecorder[execution.ProjectName][execution.FlowID] = 1
 		case "FAILED":
 			lastStatusRecorder[execution.ProjectName][execution.FlowID] = 0
+		case "KILLED":
+			lastStatusRecorder[execution.ProjectName][execution.FlowID] = -2
 		default:
 			lastStatusRecorder[execution.ProjectName][execution.FlowID] = -1
 		}
