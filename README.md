@@ -23,6 +23,12 @@ $ azkaban_exporter -h
 - 降低维护 session 成本
 - 省略 project 去重操作
 
+## Dashboard
+
+Grafana dashboard id: `15429`
+
+https://grafana.com/grafana/dashboards/15429
+
 ## 可能出现的报错
 
 ### connect: can't assign requested address
