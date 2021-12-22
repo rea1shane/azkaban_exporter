@@ -29,6 +29,8 @@ Grafana dashboard id: `15429`
 
 https://grafana.com/grafana/dashboards/15429
 
+![image](https://raw.githubusercontent.com/rea1shane/azkaban_exporter/feature-http-retry/img/dashboard.jpg)
+
 ## 可能出现的报错
 
 ### connect: can't assign requested address
