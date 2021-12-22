@@ -22,8 +22,6 @@ func init() {
 	functions.RegisterCollector(subsystem, util.DefaultEnabled, NewAzkabanCollector)
 }
 
-// TODO 任务持续运行时间记录
-// TODO rank 10
 type azkabanCollector struct {
 	logger          *log.Entry
 	new             util.TypedDesc
@@ -141,7 +139,7 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		runningDurationRecorder = map[string]map[string]int64{}
 		lastStatusRecorder      = map[string]map[string]int{}
 	)
-	ctx, cancelFunc := context.WithTimeout(context.Background(), 1500*time.Millisecond)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 3000*time.Millisecond)
 	defer cancelFunc()
 	group := errgroup.WithCancel(ctx)
 	group.Go(func(ctx context.Context) error {

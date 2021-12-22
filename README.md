@@ -6,6 +6,11 @@
 - 传参设置日志级别
 - 更改 required 包名
 
+## Env
+
+- azkaban: `3.90.0`
+- go: `1.17.2`
+
 ## Use
 
 To see all available configuration flags:
@@ -25,7 +30,9 @@ $ azkaban_exporter -h
 
 ## Dashboard
 
-Grafana dashboard id: `15429`
+grafana version: `8`
+
+dashboard id: `15429`
 
 https://grafana.com/grafana/dashboards/15429
 
