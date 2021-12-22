@@ -126,7 +126,7 @@ func (a *Azkaban) GetExecutions(ctx context.Context, projectName string, flowId 
 		ch <- Execution{
 			ProjectName: projectName,
 			FlowID:      flowId,
-			Status:      "NEVER RUN",
+			Status:      "NEW",
 		}
 		return nil
 	}
