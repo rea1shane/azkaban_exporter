@@ -37,6 +37,7 @@ type azkabanCollector struct {
 	running1440     util.TypedDesc
 	runningDuration util.TypedDesc
 	lastStatus      util.TypedDesc
+	lastDuration    util.TypedDesc
 }
 
 func NewAzkabanCollector(namespace string, logger *log.Entry) (structs.Collector, error) {
@@ -103,13 +104,18 @@ func NewAzkabanCollector(namespace string, logger *log.Entry) (structs.Collector
 			ValueType: prometheus.GaugeValue,
 		},
 		runningDuration: util.TypedDesc{
-			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, subsystem, "running_duration"),
+			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, subsystem, "running_duration_ms"),
 				"Duration of each running flows. (unit: ms)", labelProjectFlow, nil),
 			ValueType: prometheus.GaugeValue,
 		},
 		lastStatus: util.TypedDesc{
 			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, subsystem, "last_status"),
-				"flow last execution status flag, (-2=KILLED / -1=UNKNOW / 0=FAILED / 1=SUCCEEDED / 2=RUNNING / 3=PREPARING / 4=NEW)", labelProjectFlow, nil),
+				"Flow last execution status flag. (-2=KILLED / -1=UNKNOW / 0=FAILED / 1=SUCCEEDED / 2=RUNNING / 3=PREPARING / 4=NEW)", labelProjectFlow, nil),
+			ValueType: prometheus.GaugeValue,
+		},
+		lastDuration: util.TypedDesc{
+			Desc: prometheus.NewDesc(prometheus.BuildFQName(namespace, subsystem, "last_duration_ms"),
+				"Flow last execution duration which finished. (unit: ms)", labelProjectFlow, nil),
 			ValueType: prometheus.GaugeValue,
 		},
 	}, nil
@@ -138,6 +144,7 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 
 		runningDurationRecorder = map[string]map[string]int64{}
 		lastStatusRecorder      = map[string]map[string]int{}
+		lastDurationRecorder    = map[string]map[string]int64{}
 	)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 3000*time.Millisecond)
 	defer cancelFunc()
@@ -169,6 +176,7 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 
 			runningDurationRecorder[projectName] = map[string]int64{}
 			lastStatusRecorder[projectName] = map[string]int{}
+			lastDurationRecorder[projectName] = map[string]int64{}
 			g.Go(func(ctx context.Context) error {
 				select {
 				case <-ctx.Done():
@@ -217,12 +225,15 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 			runningCounter[execution.ProjectName]++
 		case "SUCCEEDED":
 			lastStatusRecorder[execution.ProjectName][execution.FlowID] = 1
+			lastDurationRecorder[execution.ProjectName][execution.FlowID] = execution.EndTime - execution.StartTime
 			succeededCounter[execution.ProjectName]++
 		case "FAILED":
 			lastStatusRecorder[execution.ProjectName][execution.FlowID] = 0
+			lastDurationRecorder[execution.ProjectName][execution.FlowID] = execution.EndTime - execution.StartTime
 			failedCounter[execution.ProjectName]++
 		case "KILLED":
 			lastStatusRecorder[execution.ProjectName][execution.FlowID] = -2
+			lastDurationRecorder[execution.ProjectName][execution.FlowID] = execution.EndTime - execution.StartTime
 			killedCounter[execution.ProjectName]++
 		default:
 			lastStatusRecorder[execution.ProjectName][execution.FlowID] = -1
@@ -371,6 +382,19 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 			for projectName, flowAndFlag := range lastStatusRecorder {
 				for flowId, flag := range flowAndFlag {
 					ch <- c.lastStatus.MustNewConstMetric(float64(flag), projectName, flowId)
+				}
+			}
+			return nil
+		}
+	})
+	group.Go(func(ctx context.Context) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			for projectName, flowAndDuration := range lastDurationRecorder {
+				for flowId, duration := range flowAndDuration {
+					ch <- c.lastDuration.MustNewConstMetric(float64(duration), projectName, flowId)
 				}
 			}
 			return nil
