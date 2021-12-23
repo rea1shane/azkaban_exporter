@@ -32,6 +32,14 @@ func ParseArgs(e structs.Exporter) structs.Args {
 			"azkaban.conf",
 			"Azkaban config file path.",
 		).Default("azkaban.yml").String()
+		logLevel = kingpin.Flag(
+			"log.level",
+			"Only log messages with the given severity or above. One of: [debug, info, warn, error]",
+		).Default("info").String()
+		ginMode = kingpin.Flag(
+			"gin.mode",
+			"Gin's mode, suggest release mode in production. One of: [debug, release, test]",
+		).Default("release").String()
 	)
 
 	kingpin.Version(version.Print(e.ExporterName))
@@ -46,6 +54,8 @@ func ParseArgs(e structs.Exporter) structs.Args {
 		MetricsPath:            *metricsPath,
 		DisableExporterMetrics: *disableExporterMetrics,
 		MaxRequests:            *maxRequests,
+		LogLevel:               *logLevel,
+		GinMode:                *ginMode,
 	}
 }
 

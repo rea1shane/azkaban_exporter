@@ -18,6 +18,30 @@ import (
 var srv *http.Server
 
 func Start(logger *log.Logger, e structs.Exporter, args structs.Args) {
+	switch args.LogLevel {
+	case "debug":
+		logger.SetLevel(log.DebugLevel)
+	case "info":
+		logger.SetLevel(log.InfoLevel)
+	case "warn":
+		logger.SetLevel(log.WarnLevel)
+	case "error":
+		logger.SetLevel(log.ErrorLevel)
+	default:
+		panic("log level unknown: " + args.LogLevel + " (run -h get more information)")
+	}
+
+	switch args.GinMode {
+	case "debug":
+		gin.SetMode(gin.DebugMode)
+	case "release":
+		gin.SetMode(gin.ReleaseMode)
+	case "test":
+		gin.SetMode(gin.TestMode)
+	default:
+		panic("gin mode unknown: " + args.GinMode + " (run -h get more information)")
+	}
+
 	displayName := camelString(e.ExporterName)
 
 	logger.Info("Starting "+e.ExporterName, " version", version.Info())

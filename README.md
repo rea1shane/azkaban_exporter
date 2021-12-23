@@ -6,6 +6,11 @@
 - 传参设置日志级别
 - 更改 required 包名
 
+## Env
+
+- azkaban: `3.90.0`
+- go: `1.17.2`
+
 ## Use
 
 To see all available configuration flags:
@@ -22,6 +27,16 @@ $ azkaban_exporter -h
 - 更加安全, 降低主要账号泄露可能
 - 降低维护 session 成本
 - 省略 project 去重操作
+
+## Dashboard
+
+grafana version: `8`
+
+dashboard id: `15429`
+
+https://grafana.com/grafana/dashboards/15429
+
+![image](https://raw.githubusercontent.com/rea1shane/azkaban_exporter/feature-http-retry/img/dashboard.jpg)
 
 ## 可能出现的报错
 
