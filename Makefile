@@ -22,3 +22,7 @@ run:
 
 clean:
 	rm -rf bin
+
+help:
+	$(MAKE) build
+	bin/azkaban_exporter -h
