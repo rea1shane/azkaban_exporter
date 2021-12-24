@@ -146,7 +146,7 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		lastStatusRecorder      = map[string]map[string]int{}
 		lastDurationRecorder    = map[string]map[string]int64{}
 	)
-	ctx, cancelFunc := context.WithTimeout(context.Background(), 3000*time.Millisecond)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 5000*time.Millisecond)
 	defer cancelFunc()
 	group := errgroup.WithCancel(ctx)
 	group.Go(func(ctx context.Context) error {
@@ -160,6 +160,7 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 			projectName := projectWithFlows.ProjectName
 			flowIds := projectWithFlows.FlowIds
 
+			// TODO 并发安全问题
 			newCounter[projectName] = 0
 			preparingCounter[projectName] = 0
 			runningCounter[projectName] = 0

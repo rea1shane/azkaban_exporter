@@ -124,11 +124,15 @@ func Execute(name string, c structs.Collector, ch chan<- prometheus.Metric, logg
 	var success float64
 
 	if err != nil {
+		str1 := fmt.Sprintf("%+v", err)
+		str2 := strings.TrimRight(str1, "\n")
+		str3 := strings.Replace(str2, "\n}", "\n    }", -1)
+		str4 := strings.Replace(str3, "\n  \"", "\n      \"", -1)
+		str5 := strings.Replace(str4, "\n", "\n    ", -1)
 		logger.
-			WithError(err).
 			WithField("name", name).
 			WithField("duration_seconds", fmt.Sprintf("%v", duration.Milliseconds())+"ms").
-			Error("collector failed\n└──>" + strings.Replace(strings.TrimRight(fmt.Sprintf("%+v", err), "\n"), "\n", "\n    ", -1))
+			Errorf("collector failed\n└──>%+v", str5)
 		success = 0
 	} else {
 		logger.
