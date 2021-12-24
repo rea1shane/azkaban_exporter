@@ -84,7 +84,7 @@ func shutdown(logger *log.Logger) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		logger.WithError(err).Error("server shutdown")
+		logger.Errorf("server shutdown\n%+v", err)
 		return
 	}
 }

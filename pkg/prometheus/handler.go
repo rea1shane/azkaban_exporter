@@ -58,7 +58,7 @@ func (h *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	// To serve filtered metrics, we create a filtering handler on the fly.
 	filteredHandler, err := h.InnerHandler(filters...)
 	if err != nil {
-		h.Logger.WithError(err).Warn("Couldn't create filtered metrics handler:", "err", err)
+		h.Logger.Warnf("Couldn't create filtered metrics handler\n%+v", err)
 		writer.WriteHeader(http.StatusBadRequest)
 		_, _ = writer.Write([]byte(fmt.Sprintf("Couldn't create filtered metrics handler: %s", err)))
 		return
