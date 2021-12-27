@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/go-kratos/kratos/pkg/sync/errgroup"
 	"github.com/morikuni/failure"
+	cmap "github.com/orcaman/concurrent-map"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -14,9 +15,9 @@ import (
 
 var (
 	runningExecs          []int
-	totalSucceededCounter = map[string]int{}
-	totalFailedCounter    = map[string]int{}
-	totalKilledCounter    = map[string]int{}
+	totalSucceededCounter = cmap.New()
+	totalFailedCounter    = cmap.New()
+	totalKilledCounter    = cmap.New()
 )
 
 const (
@@ -206,15 +207,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 			lastStatusRecorder[projectName] = map[string]int{}
 			lastDurationRecorder[projectName] = map[string]int64{}
 
-			if _, ok := totalSucceededCounter[projectName]; !ok {
-				totalSucceededCounter[projectName] = 0
-			}
-			if _, ok := totalFailedCounter[projectName]; !ok {
-				totalFailedCounter[projectName] = 0
-			}
-			if _, ok := totalKilledCounter[projectName]; !ok {
-				totalKilledCounter[projectName] = 0
-			}
+			totalSucceededCounter.SetIfAbsent(projectName, 0)
+			totalFailedCounter.SetIfAbsent(projectName, 0)
+			totalKilledCounter.SetIfAbsent(projectName, 0)
 			g.Go(func(ctx context.Context) error {
 				select {
 				case <-ctx.Done():
@@ -237,9 +232,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		}
 		err := g.Wait()
 		close(executions)
-		totalSucceededCounter = removeKeys(totalSucceededCounter, projectNames)
-		totalFailedCounter = removeKeys(totalFailedCounter, projectNames)
-		totalKilledCounter = removeKeys(totalKilledCounter, projectNames)
+		removeKeys(totalSucceededCounter, projectNames)
+		removeKeys(totalFailedCounter, projectNames)
+		removeKeys(totalKilledCounter, projectNames)
 		return err
 	})
 	for execution := range executions {
@@ -269,7 +264,8 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 			runningCounter[execution.ProjectName]++
 		case "SUCCEEDED":
 			if index, ok := findInt(runningExecs, execution.ExecID); ok {
-				totalSucceededCounter[execution.ProjectName]++
+				value, _ := totalSucceededCounter.Get(execution.ProjectName)
+				totalSucceededCounter.Set(execution.ProjectName, value.(int)+1)
 				runningExecs = append(runningExecs[:index], runningExecs[index+1:]...)
 			}
 			lastStatusRecorder[execution.ProjectName][execution.FlowID] = 1
@@ -277,7 +273,8 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 			succeededCounter[execution.ProjectName]++
 		case "FAILED":
 			if index, ok := findInt(runningExecs, execution.ExecID); ok {
-				totalFailedCounter[execution.ProjectName]++
+				value, _ := totalFailedCounter.Get(execution.ProjectName)
+				totalFailedCounter.Set(execution.ProjectName, value.(int)+1)
 				runningExecs = append(runningExecs[:index], runningExecs[index+1:]...)
 			}
 			lastStatusRecorder[execution.ProjectName][execution.FlowID] = 0
@@ -285,7 +282,8 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 			failedCounter[execution.ProjectName]++
 		case "KILLED":
 			if index, ok := findInt(runningExecs, execution.ExecID); ok {
-				totalKilledCounter[execution.ProjectName]++
+				value, _ := totalKilledCounter.Get(execution.ProjectName)
+				totalKilledCounter.Set(execution.ProjectName, value.(int)+1)
 				runningExecs = append(runningExecs[:index], runningExecs[index+1:]...)
 			}
 			lastStatusRecorder[execution.ProjectName][execution.FlowID] = -2
@@ -422,9 +420,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, num := range totalSucceededCounter {
-				ch <- c.totalSucceeded.MustNewConstMetric(float64(num), projectName)
-			}
+			totalSucceededCounter.IterCb(func(key string, v interface{}) {
+				ch <- c.totalSucceeded.MustNewConstMetric(float64(v.(int)), key)
+			})
 			return nil
 		}
 	})
@@ -433,9 +431,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, num := range totalFailedCounter {
-				ch <- c.totalFailed.MustNewConstMetric(float64(num), projectName)
-			}
+			totalFailedCounter.IterCb(func(key string, v interface{}) {
+				ch <- c.totalFailed.MustNewConstMetric(float64(v.(int)), key)
+			})
 			return nil
 		}
 	})
@@ -444,9 +442,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, num := range totalKilledCounter {
-				ch <- c.totalKilled.MustNewConstMetric(float64(num), projectName)
-			}
+			totalKilledCounter.IterCb(func(key string, v interface{}) {
+				ch <- c.totalKilled.MustNewConstMetric(float64(v.(int)), key)
+			})
 			return nil
 		}
 	})
@@ -525,22 +523,11 @@ func findString(slice []string, val string) (int, bool) {
 }
 
 // removeKeys if key not in slice, delete.
-func removeKeys(m map[string]int, s []string) map[string]int {
-	keys := getKeys(m)
+func removeKeys(m cmap.ConcurrentMap, s []string) {
+	keys := m.Keys()
 	for _, key := range keys {
 		if _, ok := findString(s, key); !ok {
-			delete(m, key)
+			m.Remove(key)
 		}
 	}
-	return m
-}
-
-func getKeys(m map[string]int) []string {
-	j := 0
-	keys := make([]string, len(m))
-	for k := range m {
-		keys[j] = k
-		j++
-	}
-	return keys
 }
