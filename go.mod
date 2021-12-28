@@ -7,6 +7,7 @@ require (
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-kratos/kratos v1.0.1
 	github.com/morikuni/failure v0.14.0
+	github.com/orcaman/concurrent-map v1.0.0
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/common v0.29.0
 	github.com/sirupsen/logrus v1.8.1

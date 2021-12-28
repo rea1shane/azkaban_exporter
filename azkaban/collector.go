@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/go-kratos/kratos/pkg/sync/errgroup"
 	"github.com/morikuni/failure"
+	cmap "github.com/orcaman/concurrent-map"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -14,9 +15,9 @@ import (
 
 var (
 	runningExecs          []int
-	totalSucceededCounter = map[string]int{}
-	totalFailedCounter    = map[string]int{}
-	totalKilledCounter    = map[string]int{}
+	totalSucceededCounter = cmap.New()
+	totalFailedCounter    = cmap.New()
+	totalKilledCounter    = cmap.New()
 )
 
 const (
@@ -153,23 +154,23 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		projectsWithFlows = make(chan ProjectWithFlows)
 		executions        = make(chan Execution)
 
-		newCounter       = map[string]int{}
-		preparingCounter = map[string]int{}
-		runningCounter   = map[string]int{}
-		succeededCounter = map[string]int{}
-		failedCounter    = map[string]int{}
-		unknowCounter    = map[string]int{}
-		killedCounter    = map[string]int{}
+		newCounter       = cmap.New()
+		preparingCounter = cmap.New()
+		runningCounter   = cmap.New()
+		succeededCounter = cmap.New()
+		failedCounter    = cmap.New()
+		unknowCounter    = cmap.New()
+		killedCounter    = cmap.New()
 
-		running0Counter       = map[string]int{}
-		running60Counter      = map[string]int{}
-		running300Counter     = map[string]int{}
-		running1440Counter    = map[string]int{}
-		runningAttemptCounter = map[string]int{}
+		running0Counter       = cmap.New()
+		running60Counter      = cmap.New()
+		running300Counter     = cmap.New()
+		running1440Counter    = cmap.New()
+		runningAttemptCounter = cmap.New()
 
-		runningDurationRecorder = map[string]map[string]int64{}
-		lastStatusRecorder      = map[string]map[string]int{}
-		lastDurationRecorder    = map[string]map[string]int64{}
+		runningDurationRecorder = cmap.New()
+		lastStatusRecorder      = cmap.New()
+		lastDurationRecorder    = cmap.New()
 	)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 5000*time.Millisecond)
 	defer cancelFunc()
@@ -187,34 +188,27 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 			flowIds := projectWithFlows.FlowIds
 			projectNames = append(projectNames, projectName)
 
-			// TODO map 并发安全问题
-			newCounter[projectName] = 0
-			preparingCounter[projectName] = 0
-			runningCounter[projectName] = 0
-			succeededCounter[projectName] = 0
-			failedCounter[projectName] = 0
-			unknowCounter[projectName] = 0
-			killedCounter[projectName] = 0
+			newCounter.Set(projectName, 0)
+			preparingCounter.Set(projectName, 0)
+			runningCounter.Set(projectName, 0)
+			succeededCounter.Set(projectName, 0)
+			failedCounter.Set(projectName, 0)
+			unknowCounter.Set(projectName, 0)
+			killedCounter.Set(projectName, 0)
 
-			running0Counter[projectName] = 0
-			running60Counter[projectName] = 0
-			running300Counter[projectName] = 0
-			running1440Counter[projectName] = 0
-			runningAttemptCounter[projectName] = 0
+			running0Counter.Set(projectName, 0)
+			running60Counter.Set(projectName, 0)
+			running300Counter.Set(projectName, 0)
+			running1440Counter.Set(projectName, 0)
+			runningAttemptCounter.Set(projectName, 0)
 
-			runningDurationRecorder[projectName] = map[string]int64{}
-			lastStatusRecorder[projectName] = map[string]int{}
-			lastDurationRecorder[projectName] = map[string]int64{}
+			runningDurationRecorder.Set(projectName, cmap.New())
+			lastStatusRecorder.Set(projectName, cmap.New())
+			lastDurationRecorder.Set(projectName, cmap.New())
 
-			if _, ok := totalSucceededCounter[projectName]; !ok {
-				totalSucceededCounter[projectName] = 0
-			}
-			if _, ok := totalFailedCounter[projectName]; !ok {
-				totalFailedCounter[projectName] = 0
-			}
-			if _, ok := totalKilledCounter[projectName]; !ok {
-				totalKilledCounter[projectName] = 0
-			}
+			totalSucceededCounter.SetIfAbsent(projectName, 0)
+			totalFailedCounter.SetIfAbsent(projectName, 0)
+			totalKilledCounter.SetIfAbsent(projectName, 0)
 			g.Go(func(ctx context.Context) error {
 				select {
 				case <-ctx.Done():
@@ -237,63 +231,88 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		}
 		err := g.Wait()
 		close(executions)
-		totalSucceededCounter = removeKeys(totalSucceededCounter, projectNames)
-		totalFailedCounter = removeKeys(totalFailedCounter, projectNames)
-		totalKilledCounter = removeKeys(totalKilledCounter, projectNames)
+		removeKeys(totalSucceededCounter, projectNames)
+		removeKeys(totalFailedCounter, projectNames)
+		removeKeys(totalKilledCounter, projectNames)
 		return err
 	})
 	for execution := range executions {
 		switch execution.Status {
 		case "NEW":
-			lastStatusRecorder[execution.ProjectName][execution.FlowID] = 4
-			newCounter[execution.ProjectName]++
+			lastStatusSecondMap, _ := lastStatusRecorder.Get(execution.ProjectName)
+			lastStatusSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, 4)
+			n, _ := newCounter.Get(execution.ProjectName)
+			newCounter.Set(execution.ProjectName, n.(int)+1)
 		case "PREPARING":
-			lastStatusRecorder[execution.ProjectName][execution.FlowID] = 3
-			preparingCounter[execution.ProjectName]++
+			lastStatusSecondMap, _ := lastStatusRecorder.Get(execution.ProjectName)
+			lastStatusSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, 3)
+			p, _ := preparingCounter.Get(execution.ProjectName)
+			preparingCounter.Set(execution.ProjectName, p.(int)+1)
 		case "RUNNING":
 			if _, ok := findInt(runningExecs, execution.ExecID); !ok {
 				runningExecs = append(runningExecs, execution.ExecID)
 			}
-			lastStatusRecorder[execution.ProjectName][execution.FlowID] = 2
+			lastStatusSecondMap, _ := lastStatusRecorder.Get(execution.ProjectName)
+			lastStatusSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, 2)
 			runningTime := time.Now().UnixMilli() - execution.StartTime
-			runningDurationRecorder[execution.ProjectName][execution.FlowID] = runningTime
+			runningDurationSecondMap, _ := runningDurationRecorder.Get(execution.ProjectName)
+			runningDurationSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, runningTime)
 			if inRange(runningTime, 0, 3600000) {
-				running0Counter[execution.ProjectName]++
+				r0, _ := running0Counter.Get(execution.ProjectName)
+				running0Counter.Set(execution.ProjectName, r0.(int)+1)
 			} else if inRange(runningTime, 3600000, 18000000) {
-				running60Counter[execution.ProjectName]++
+				r60, _ := running60Counter.Get(execution.ProjectName)
+				running60Counter.Set(execution.ProjectName, r60.(int)+1)
 			} else if inRange(runningTime, 18000000, 86400000) {
-				running300Counter[execution.ProjectName]++
+				r300, _ := running300Counter.Get(execution.ProjectName)
+				running300Counter.Set(execution.ProjectName, r300.(int)+1)
 			} else {
-				running1440Counter[execution.ProjectName]++
+				r1440, _ := running1440Counter.Get(execution.ProjectName)
+				running1440Counter.Set(execution.ProjectName, r1440.(int)+1)
 			}
-			runningCounter[execution.ProjectName]++
+			r, _ := runningCounter.Get(execution.ProjectName)
+			runningCounter.Set(execution.ProjectName, r.(int)+1)
 		case "SUCCEEDED":
 			if index, ok := findInt(runningExecs, execution.ExecID); ok {
-				totalSucceededCounter[execution.ProjectName]++
+				value, _ := totalSucceededCounter.Get(execution.ProjectName)
+				totalSucceededCounter.Set(execution.ProjectName, value.(int)+1)
 				runningExecs = append(runningExecs[:index], runningExecs[index+1:]...)
 			}
-			lastStatusRecorder[execution.ProjectName][execution.FlowID] = 1
-			lastDurationRecorder[execution.ProjectName][execution.FlowID] = execution.EndTime - execution.StartTime
-			succeededCounter[execution.ProjectName]++
+			lastStatusSecondMap, _ := lastStatusRecorder.Get(execution.ProjectName)
+			lastStatusSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, 1)
+			lastDurationSecondMap, _ := lastDurationRecorder.Get(execution.ProjectName)
+			lastDurationSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, execution.EndTime-execution.StartTime)
+			s, _ := succeededCounter.Get(execution.ProjectName)
+			succeededCounter.Set(execution.ProjectName, s.(int)+1)
 		case "FAILED":
 			if index, ok := findInt(runningExecs, execution.ExecID); ok {
-				totalFailedCounter[execution.ProjectName]++
+				value, _ := totalFailedCounter.Get(execution.ProjectName)
+				totalFailedCounter.Set(execution.ProjectName, value.(int)+1)
 				runningExecs = append(runningExecs[:index], runningExecs[index+1:]...)
 			}
-			lastStatusRecorder[execution.ProjectName][execution.FlowID] = 0
-			lastDurationRecorder[execution.ProjectName][execution.FlowID] = execution.EndTime - execution.StartTime
-			failedCounter[execution.ProjectName]++
+			lastStatusSecondMap, _ := lastStatusRecorder.Get(execution.ProjectName)
+			lastStatusSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, 0)
+			lastDurationSecondMap, _ := lastDurationRecorder.Get(execution.ProjectName)
+			lastDurationSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, execution.EndTime-execution.StartTime)
+			f, _ := failedCounter.Get(execution.ProjectName)
+			failedCounter.Set(execution.ProjectName, f.(int)+1)
 		case "KILLED":
 			if index, ok := findInt(runningExecs, execution.ExecID); ok {
-				totalKilledCounter[execution.ProjectName]++
+				value, _ := totalKilledCounter.Get(execution.ProjectName)
+				totalKilledCounter.Set(execution.ProjectName, value.(int)+1)
 				runningExecs = append(runningExecs[:index], runningExecs[index+1:]...)
 			}
-			lastStatusRecorder[execution.ProjectName][execution.FlowID] = -2
-			lastDurationRecorder[execution.ProjectName][execution.FlowID] = execution.EndTime - execution.StartTime
-			killedCounter[execution.ProjectName]++
+			lastStatusSecondMap, _ := lastStatusRecorder.Get(execution.ProjectName)
+			lastStatusSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, -2)
+			lastDurationSecondMap, _ := lastDurationRecorder.Get(execution.ProjectName)
+			lastDurationSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, execution.EndTime-execution.StartTime)
+			k, _ := killedCounter.Get(execution.ProjectName)
+			killedCounter.Set(execution.ProjectName, k.(int)+1)
 		default:
-			lastStatusRecorder[execution.ProjectName][execution.FlowID] = -1
-			unknowCounter[execution.ProjectName]++
+			lastStatusSecondMap, _ := lastStatusRecorder.Get(execution.ProjectName)
+			lastStatusSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, -1)
+			u, _ := unknowCounter.Get(execution.ProjectName)
+			unknowCounter.Set(execution.ProjectName, u.(int)+1)
 		}
 	}
 	group.Go(func(ctx context.Context) error {
@@ -301,9 +320,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, num := range newCounter {
-				ch <- c.new.MustNewConstMetric(float64(num), projectName)
-			}
+			newCounter.IterCb(func(projectName string, v interface{}) {
+				ch <- c.new.MustNewConstMetric(float64(v.(int)), projectName)
+			})
 			return nil
 		}
 	})
@@ -312,9 +331,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, num := range preparingCounter {
-				ch <- c.preparing.MustNewConstMetric(float64(num), projectName)
-			}
+			preparingCounter.IterCb(func(projectName string, v interface{}) {
+				ch <- c.preparing.MustNewConstMetric(float64(v.(int)), projectName)
+			})
 			return nil
 		}
 	})
@@ -323,9 +342,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, num := range runningCounter {
-				ch <- c.running.MustNewConstMetric(float64(num), projectName)
-			}
+			runningCounter.IterCb(func(projectName string, v interface{}) {
+				ch <- c.running.MustNewConstMetric(float64(v.(int)), projectName)
+			})
 			return nil
 		}
 	})
@@ -334,9 +353,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, num := range succeededCounter {
-				ch <- c.succeeded.MustNewConstMetric(float64(num), projectName)
-			}
+			succeededCounter.IterCb(func(projectName string, v interface{}) {
+				ch <- c.succeeded.MustNewConstMetric(float64(v.(int)), projectName)
+			})
 			return nil
 		}
 	})
@@ -345,9 +364,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, num := range failedCounter {
-				ch <- c.failed.MustNewConstMetric(float64(num), projectName)
-			}
+			failedCounter.IterCb(func(projectName string, v interface{}) {
+				ch <- c.failed.MustNewConstMetric(float64(v.(int)), projectName)
+			})
 			return nil
 		}
 	})
@@ -356,9 +375,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, num := range unknowCounter {
-				ch <- c.unknow.MustNewConstMetric(float64(num), projectName)
-			}
+			unknowCounter.IterCb(func(projectName string, v interface{}) {
+				ch <- c.unknow.MustNewConstMetric(float64(v.(int)), projectName)
+			})
 			return nil
 		}
 	})
@@ -367,9 +386,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, num := range killedCounter {
-				ch <- c.killed.MustNewConstMetric(float64(num), projectName)
-			}
+			killedCounter.IterCb(func(projectName string, v interface{}) {
+				ch <- c.killed.MustNewConstMetric(float64(v.(int)), projectName)
+			})
 			return nil
 		}
 	})
@@ -378,9 +397,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, num := range running0Counter {
-				ch <- c.running0.MustNewConstMetric(float64(num), projectName)
-			}
+			running0Counter.IterCb(func(projectName string, v interface{}) {
+				ch <- c.running0.MustNewConstMetric(float64(v.(int)), projectName)
+			})
 			return nil
 		}
 	})
@@ -389,9 +408,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, num := range running60Counter {
-				ch <- c.running60.MustNewConstMetric(float64(num), projectName)
-			}
+			running60Counter.IterCb(func(projectName string, v interface{}) {
+				ch <- c.running60.MustNewConstMetric(float64(v.(int)), projectName)
+			})
 			return nil
 		}
 	})
@@ -400,9 +419,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, num := range running300Counter {
-				ch <- c.running300.MustNewConstMetric(float64(num), projectName)
-			}
+			running300Counter.IterCb(func(projectName string, v interface{}) {
+				ch <- c.running300.MustNewConstMetric(float64(v.(int)), projectName)
+			})
 			return nil
 		}
 	})
@@ -411,9 +430,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, num := range running1440Counter {
-				ch <- c.running1440.MustNewConstMetric(float64(num), projectName)
-			}
+			running1440Counter.IterCb(func(projectName string, v interface{}) {
+				ch <- c.running1440.MustNewConstMetric(float64(v.(int)), projectName)
+			})
 			return nil
 		}
 	})
@@ -422,9 +441,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, num := range totalSucceededCounter {
-				ch <- c.totalSucceeded.MustNewConstMetric(float64(num), projectName)
-			}
+			totalSucceededCounter.IterCb(func(projectName string, v interface{}) {
+				ch <- c.totalSucceeded.MustNewConstMetric(float64(v.(int)), projectName)
+			})
 			return nil
 		}
 	})
@@ -433,9 +452,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, num := range totalFailedCounter {
-				ch <- c.totalFailed.MustNewConstMetric(float64(num), projectName)
-			}
+			totalFailedCounter.IterCb(func(projectName string, v interface{}) {
+				ch <- c.totalFailed.MustNewConstMetric(float64(v.(int)), projectName)
+			})
 			return nil
 		}
 	})
@@ -444,9 +463,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, num := range totalKilledCounter {
-				ch <- c.totalKilled.MustNewConstMetric(float64(num), projectName)
-			}
+			totalKilledCounter.IterCb(func(projectName string, v interface{}) {
+				ch <- c.totalKilled.MustNewConstMetric(float64(v.(int)), projectName)
+			})
 			return nil
 		}
 	})
@@ -455,11 +474,11 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, flowAndDuration := range runningDurationRecorder {
-				for flowId, duration := range flowAndDuration {
-					ch <- c.runningDuration.MustNewConstMetric(float64(duration), projectName, flowId)
-				}
-			}
+			runningDurationRecorder.IterCb(func(projectName string, secondMap interface{}) {
+				secondMap.(cmap.ConcurrentMap).IterCb(func(flowId string, v interface{}) {
+					ch <- c.runningDuration.MustNewConstMetric(float64(v.(int64)), projectName, flowId)
+				})
+			})
 			return nil
 		}
 	})
@@ -468,11 +487,11 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, flowAndFlag := range lastStatusRecorder {
-				for flowId, flag := range flowAndFlag {
-					ch <- c.lastStatus.MustNewConstMetric(float64(flag), projectName, flowId)
-				}
-			}
+			lastStatusRecorder.IterCb(func(projectName string, secondMap interface{}) {
+				secondMap.(cmap.ConcurrentMap).IterCb(func(flowId string, v interface{}) {
+					ch <- c.lastStatus.MustNewConstMetric(float64(v.(int)), projectName, flowId)
+				})
+			})
 			return nil
 		}
 	})
@@ -481,11 +500,11 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			for projectName, flowAndDuration := range lastDurationRecorder {
-				for flowId, duration := range flowAndDuration {
-					ch <- c.lastDuration.MustNewConstMetric(float64(duration), projectName, flowId)
-				}
-			}
+			lastDurationRecorder.IterCb(func(projectName string, secondMap interface{}) {
+				secondMap.(cmap.ConcurrentMap).IterCb(func(flowId string, v interface{}) {
+					ch <- c.lastDuration.MustNewConstMetric(float64(v.(int64)), projectName, flowId)
+				})
+			})
 			return nil
 		}
 	})
@@ -525,22 +544,11 @@ func findString(slice []string, val string) (int, bool) {
 }
 
 // removeKeys if key not in slice, delete.
-func removeKeys(m map[string]int, s []string) map[string]int {
-	keys := getKeys(m)
+func removeKeys(m cmap.ConcurrentMap, s []string) {
+	keys := m.Keys()
 	for _, key := range keys {
 		if _, ok := findString(s, key); !ok {
-			delete(m, key)
+			m.Remove(key)
 		}
 	}
-	return m
-}
-
-func getKeys(m map[string]int) []string {
-	j := 0
-	keys := make([]string, len(m))
-	for k := range m {
-		keys[j] = k
-		j++
-	}
-	return keys
 }
