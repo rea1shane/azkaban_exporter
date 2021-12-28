@@ -50,6 +50,25 @@ $ azkaban_exporter -h
 
 Then you can access `http://127.0.0.1:9900` to view azkaban metrics.
 
+## Build
+
+NEED `go version >= 1.17.2`.
+
+### Setp1
+
+```shell
+$ git clone https://github.com/rea1shane/azkaban_exporter.git
+```
+
+### Setp2
+
+```shell
+$ cd azkaban_exporter
+$ make build
+```
+
+Output file in `bin` dir.
+
 ## Why add a user
 
 More security, reduce the risk of major account leakage.
