@@ -3,15 +3,44 @@
 ## TODO
 
 - 打包为 docker 镜像
-- 传参设置日志级别
-- 更改 required 包名
 
-## Env
+## Develop Env
 
 - azkaban: `3.90.0`
 - go: `1.17.2`
 
-## Use
+## Usage
+
+### Setp1
+
+Add a user in azkaban, example: `metrics`
+
+And edit `azkaban.yml`:
+
+```yaml
+server:
+  protocol: http
+  host: 127.0.0.1
+  port: 20000
+user:
+  username: metrics
+  password: password
+```
+
+### Setp2
+
+Add `read` permissions to the project for this user.
+
+Azkaban exporter monitors all projects that `metrics` have read permission.
+
+### Setp3
+
+Run it, basic usage:
+
+```shell
+$ azkaban_exporter --web.listen-address=:9900 --azkaban.conf=azkaban.yml
+```
+
 
 To see all available configuration flags:
 
@@ -19,16 +48,13 @@ To see all available configuration flags:
 $ azkaban_exporter -h
 ```
 
-## 特性
+Then you can access `http://127.0.0.1:9900` to view azkaban metrics.
 
-**更改为单个用户**, example: `watcher / watcher`
+## Why add a user
 
-- 减少请求次数
-- 更加安全, 降低主要账号泄露可能
-- 降低维护 session 成本
-- 省略 project 去重操作
+More security, reduce the risk of major account leakage.
 
-## Dashboard
+## Grafana Dashboard
 
 grafana version: `8`
 
