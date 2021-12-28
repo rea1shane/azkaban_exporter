@@ -8,38 +8,36 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"sync"
+	"strconv"
+	"time"
 )
 
-type SingletonHttp struct {
-	client *http.Client
+type Http struct {
+	client    *http.Client
+	attempts  int
+	sleepTime time.Duration // sleepTime will increase with attempt tiems, value = sleepTime * (2 * times - 1)
 }
 
-var (
-	instance *SingletonHttp
-	onceHttp sync.Once
-)
-
-func GetSingletonHttp() *SingletonHttp {
-	onceHttp.Do(func() {
-		instance = &SingletonHttp{
-			client: &http.Client{},
-		}
-	})
-	return instance
+func GetHttp(attempts int, sleepTime time.Duration) Http {
+	if attempts < 1 {
+		panic("Wrong value of attempts: " + strconv.Itoa(attempts) + ", should >= 1")
+	}
+	if sleepTime < 0 {
+		panic("Wrong value of sleep time: " + sleepTime.String() + ", should >= 0")
+	}
+	return Http{
+		client:    &http.Client{},
+		attempts:  attempts,
+		sleepTime: sleepTime,
+	}
 }
 
-func (h *SingletonHttp) Request(req *http.Request, ctx context.Context, responseStruct interface{}) error {
+func (h *Http) Request(req *http.Request, ctx context.Context, responseStruct interface{}) error {
 	req = req.WithContext(ctx)
 	escape(req)
-	res, err := h.client.Do(req)
+	res, err := h.attemptDo(req)
 	if err != nil {
-		return failure.Wrap(err, failure.Context{
-			"protocol":    req.Proto,
-			"host":        req.URL.Hostname(),
-			"port":        req.URL.Port(),
-			"request_url": req.URL.RequestURI(),
-		})
+		return err
 	}
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
@@ -64,6 +62,35 @@ func (h *SingletonHttp) Request(req *http.Request, ctx context.Context, response
 		})
 	}
 	return nil
+}
+
+func (h *Http) attemptDo(req *http.Request) (*http.Response, error) {
+	var (
+		res *http.Response
+		err = map[int]error{}
+	)
+	for i := 0; i < h.attempts; i++ {
+		res, err[i] = h.client.Do(req)
+		if err[i] != nil {
+			if i == h.attempts-1 {
+				c := failure.Context{
+					"protocol":    req.Proto,
+					"host":        req.URL.Hostname(),
+					"port":        req.URL.Port(),
+					"request_url": req.URL.RequestURI(),
+				}
+				for k := 0; k < h.attempts-1; k++ {
+					c["attempt "+strconv.Itoa(k+1)+" err"] = err[k].Error()
+				}
+				return res, failure.Wrap(err[i], c)
+			} else {
+				time.Sleep(h.sleepTime * time.Duration(2*i+1))
+				continue
+			}
+		}
+		break
+	}
+	return res, nil
 }
 
 func escape(req *http.Request) {
