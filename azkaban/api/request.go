@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var singletonHttp = util.GetSingletonHttp()
+var h = util.GetHttp(3, 500)
 
 const (
 	RequestError failure.StringCode = "request error"
@@ -26,7 +26,7 @@ func Authenticate(p AuthenticateParam, ctx context.Context) (string, error) {
 		return "", failure.Wrap(err)
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	err = singletonHttp.Request(req, ctx, &response)
+	err = h.Request(req, ctx, &response)
 	if err != nil {
 		return "", err
 	}
@@ -48,7 +48,7 @@ func FetchUserProjects(p FetchUserProjectsParam, ctx context.Context) ([]Project
 	if err != nil {
 		return nil, failure.Wrap(err)
 	}
-	err = singletonHttp.Request(req, ctx, &response)
+	err = h.Request(req, ctx, &response)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func FetchFlowsOfAProject(p FetchFlowsOfAProjectParam, ctx context.Context) ([]F
 	if err != nil {
 		return nil, failure.Wrap(err)
 	}
-	err = singletonHttp.Request(req, ctx, &response)
+	err = h.Request(req, ctx, &response)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func FetchExecutionsOfAFlow(p FetchExecutionsOfAFlowParam, ctx context.Context) 
 	if err != nil {
 		return Executions{}, failure.Wrap(err)
 	}
-	err = singletonHttp.Request(req, ctx, &response)
+	err = h.Request(req, ctx, &response)
 	if err != nil {
 		return Executions{}, err
 	}
