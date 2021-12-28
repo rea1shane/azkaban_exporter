@@ -81,13 +81,13 @@ dashboard id: `15429`
 
 https://grafana.com/grafana/dashboards/15429
 
-![image](https://raw.githubusercontent.com/rea1shane/azkaban_exporter/feature-http-retry/img/1.png)
+![image](https://raw.githubusercontent.com/rea1shane/azkaban_exporter/main/img/1.png)
 
-![image](https://raw.githubusercontent.com/rea1shane/azkaban_exporter/feature-http-retry/img/2.png)
+![image](https://raw.githubusercontent.com/rea1shane/azkaban_exporter/main/img/2.png)
 
 **NEED config variables azkaban_address, example: http(s)://host:port** 
 
-![image](https://raw.githubusercontent.com/rea1shane/azkaban_exporter/feature-http-retry/img/3.png)
+![image](https://raw.githubusercontent.com/rea1shane/azkaban_exporter/main/img/3.png)
 
 ## 可能出现的报错
 
