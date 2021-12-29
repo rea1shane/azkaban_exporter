@@ -1,4 +1,4 @@
-package azkaban
+package pkg
 
 import (
 	"context"
