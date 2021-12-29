@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/rea1shane/azkaban_exporter/azkaban"
-	"github.com/rea1shane/azkaban_exporter/required/functions"
-	"github.com/rea1shane/azkaban_exporter/required/structs"
-	"github.com/rea1shane/azkaban_exporter/util"
+	"github.com/rea1shane/basexporter/required/functions"
+	"github.com/rea1shane/basexporter/required/structs"
+	"github.com/rea1shane/basexporter/util"
 )
 
 func main() {

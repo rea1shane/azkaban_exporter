@@ -6,9 +6,9 @@ import (
 	"github.com/morikuni/failure"
 	cmap "github.com/orcaman/concurrent-map"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/rea1shane/azkaban_exporter/required/functions"
-	"github.com/rea1shane/azkaban_exporter/required/structs"
-	"github.com/rea1shane/azkaban_exporter/util"
+	"github.com/rea1shane/basexporter/required/functions"
+	"github.com/rea1shane/basexporter/required/structs"
+	"github.com/rea1shane/basexporter/util"
 	log "github.com/sirupsen/logrus"
 	"time"
 )

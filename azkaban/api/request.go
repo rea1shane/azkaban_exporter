@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 	"github.com/morikuni/failure"
-	"github.com/rea1shane/azkaban_exporter/util"
+	"github.com/rea1shane/basexporter/util"
 	"net/http"
 	"strconv"
 	"strings"

@@ -3,13 +3,12 @@ module github.com/rea1shane/azkaban_exporter
 go 1.17
 
 require (
-	github.com/antonfisher/nested-logrus-formatter v1.3.1
-	github.com/gin-gonic/gin v1.7.7
 	github.com/go-kratos/kratos v1.0.1
 	github.com/morikuni/failure v0.14.0
 	github.com/orcaman/concurrent-map v1.0.0
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/common v0.32.1
+	github.com/rea1shane/basexporter v1.0.1
 	github.com/sirupsen/logrus v1.8.1
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/yaml.v2 v2.4.0
@@ -18,9 +17,11 @@ require (
 require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
+	github.com/antonfisher/nested-logrus-formatter v1.3.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
+	github.com/gin-gonic/gin v1.7.7 // indirect
 	github.com/go-playground/locales v0.13.0 // indirect
 	github.com/go-playground/universal-translator v0.17.0 // indirect
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
