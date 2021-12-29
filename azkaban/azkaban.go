@@ -1,9 +1,9 @@
 package azkaban
 
 import (
-	"azkaban_exporter/azkaban/api"
 	"context"
 	"github.com/go-kratos/kratos/pkg/sync/errgroup"
+	"github.com/rea1shane/azkaban_exporter/azkaban/api"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"sync"

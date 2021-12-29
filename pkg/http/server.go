@@ -1,12 +1,12 @@
 package http
 
 import (
-	"azkaban_exporter/pkg/middleware"
-	"azkaban_exporter/pkg/prometheus"
-	"azkaban_exporter/required/structs"
 	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/common/version"
+	"github.com/rea1shane/azkaban_exporter/pkg/middleware"
+	"github.com/rea1shane/azkaban_exporter/pkg/prometheus"
+	"github.com/rea1shane/azkaban_exporter/required/structs"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"

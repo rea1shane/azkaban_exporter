@@ -1,10 +1,10 @@
 package main
 
 import (
-	"azkaban_exporter/azkaban"
-	"azkaban_exporter/required/functions"
-	"azkaban_exporter/required/structs"
-	"azkaban_exporter/util"
+	"github.com/rea1shane/azkaban_exporter/azkaban"
+	"github.com/rea1shane/azkaban_exporter/required/functions"
+	"github.com/rea1shane/azkaban_exporter/required/structs"
+	"github.com/rea1shane/azkaban_exporter/util"
 )
 
 func main() {

@@ -1,9 +1,9 @@
 package azkaban
 
 import (
-	"azkaban_exporter/required/structs"
 	"fmt"
 	"github.com/prometheus/common/version"
+	"github.com/rea1shane/azkaban_exporter/required/structs"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"os"
 )

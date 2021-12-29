@@ -1,9 +1,9 @@
 package api
 
 import (
-	"azkaban_exporter/util"
 	"context"
 	"github.com/morikuni/failure"
+	"github.com/rea1shane/azkaban_exporter/util"
 	"net/http"
 	"strconv"
 	"strings"

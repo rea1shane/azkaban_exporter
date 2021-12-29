@@ -1,9 +1,9 @@
 package functions
 
 import (
-	"azkaban_exporter/pkg/http"
-	"azkaban_exporter/pkg/prometheus"
-	"azkaban_exporter/required/structs"
+	"github.com/rea1shane/azkaban_exporter/pkg/http"
+	"github.com/rea1shane/azkaban_exporter/pkg/prometheus"
+	"github.com/rea1shane/azkaban_exporter/required/structs"
 	log "github.com/sirupsen/logrus"
 )
 
