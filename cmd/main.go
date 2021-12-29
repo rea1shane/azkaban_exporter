@@ -1,10 +1,10 @@
 package main
 
 import (
-	"azkaban_exporter/azkaban"
-	"azkaban_exporter/required/functions"
-	"azkaban_exporter/required/structs"
-	"azkaban_exporter/util"
+	"github.com/rea1shane/azkaban_exporter/pkg"
+	"github.com/rea1shane/basexporter/required/functions"
+	"github.com/rea1shane/basexporter/required/structs"
+	"github.com/rea1shane/basexporter/util"
 )
 
 func main() {
@@ -14,5 +14,5 @@ func main() {
 		ExporterName:    "azkaban_exporter",
 		DefaultPort:     9900,
 	}
-	functions.Start(logger, azkabanExporter, azkaban.ParseArgs(azkabanExporter))
+	functions.Start(logger, azkabanExporter, pkg.ParseArgs(azkabanExporter))
 }

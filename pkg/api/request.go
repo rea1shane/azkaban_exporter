@@ -1,9 +1,9 @@
 package api
 
 import (
-	"azkaban_exporter/util"
 	"context"
 	"github.com/morikuni/failure"
+	"github.com/rea1shane/basexporter/util"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,7 +15,7 @@ const (
 	RequestError failure.StringCode = "request error"
 )
 
-// Authenticate return azkaban.Session's SessionId
+// Authenticate return pkg.Session's SessionId
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#authenticate
 func Authenticate(p AuthenticateParam, ctx context.Context) (string, error) {
 	method := "POST"

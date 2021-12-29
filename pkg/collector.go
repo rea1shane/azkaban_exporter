@@ -1,14 +1,14 @@
-package azkaban
+package pkg
 
 import (
-	"azkaban_exporter/required/functions"
-	"azkaban_exporter/required/structs"
-	"azkaban_exporter/util"
 	"context"
 	"github.com/go-kratos/kratos/pkg/sync/errgroup"
 	"github.com/morikuni/failure"
 	cmap "github.com/orcaman/concurrent-map"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rea1shane/basexporter/required/functions"
+	"github.com/rea1shane/basexporter/required/structs"
+	"github.com/rea1shane/basexporter/util"
 	log "github.com/sirupsen/logrus"
 	"time"
 )
