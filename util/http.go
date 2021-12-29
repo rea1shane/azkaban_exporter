@@ -44,22 +44,14 @@ func (h *Http) Request(req *http.Request, ctx context.Context, responseStruct in
 	}(res.Body)
 	responseBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return failure.Wrap(err, failure.Context{
-			"protocol":      req.Proto,
-			"host":          req.URL.Hostname(),
-			"port":          req.URL.Port(),
-			"request_url":   req.URL.RequestURI(),
-			"response_body": string(responseBody),
-		})
+		c := getReqFailureContext(req)
+		c["response_body"] = string(responseBody)
+		return failure.Wrap(err, c)
 	}
 	if err = json.Unmarshal(responseBody, &responseStruct); err != nil {
-		return failure.Wrap(err, failure.Context{
-			"protocol":      req.Proto,
-			"host":          req.URL.Hostname(),
-			"port":          req.URL.Port(),
-			"request_url":   req.URL.RequestURI(),
-			"response_body": string(responseBody),
-		})
+		c := getReqFailureContext(req)
+		c["response_body"] = string(responseBody)
+		return failure.Wrap(err, c)
 	}
 	return nil
 }
@@ -73,12 +65,7 @@ func (h *Http) attemptDo(req *http.Request) (*http.Response, error) {
 		res, err[i] = h.client.Do(req)
 		if err[i] != nil {
 			if i == h.attempts-1 {
-				c := failure.Context{
-					"protocol":    req.Proto,
-					"host":        req.URL.Hostname(),
-					"port":        req.URL.Port(),
-					"request_url": req.URL.RequestURI(),
-				}
+				c := getReqFailureContext(req)
 				for k := 0; k < h.attempts-1; k++ {
 					c["attempt "+strconv.Itoa(k+1)+" err"] = err[k].Error()
 				}
@@ -95,4 +82,13 @@ func (h *Http) attemptDo(req *http.Request) (*http.Response, error) {
 
 func escape(req *http.Request) {
 	req.URL.RawQuery = url.PathEscape(req.URL.RawQuery)
+}
+
+func getReqFailureContext(req *http.Request) failure.Context {
+	return failure.Context{
+		"protocol":    req.Proto,
+		"host":        req.URL.Hostname(),
+		"port":        req.URL.Port(),
+		"request_url": req.URL.RequestURI(),
+	}
 }
