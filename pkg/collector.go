@@ -182,9 +182,9 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 	group.Go(func(ctx context.Context) error {
 		var projectNames []string
 		g := errgroup.WithCancel(ctx)
-		for projectWithFlows := range projectsWithFlows {
-			projectName := projectWithFlows.projectName
-			flowIds := projectWithFlows.flowIds
+		for projectFlows := range projectsWithFlows {
+			projectName := projectFlows.projectName
+			flowIds := projectFlows.flowIds
 			projectNames = append(projectNames, projectName)
 
 			newCounter.Set(projectName, 0)
