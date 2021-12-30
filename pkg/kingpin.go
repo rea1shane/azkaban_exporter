@@ -2,20 +2,19 @@ package pkg
 
 import (
 	"fmt"
-	"github.com/prometheus/common/version"
-	"github.com/rea1shane/basexporter/required/structs"
+	"github.com/rea1shane/basexporter"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"os"
 )
 
 var azkabanConfPath string
 
-func ParseArgs(e structs.Exporter) structs.Args {
+func ParseArgs(defaultPort int) basexporter.Args {
 	var (
 		listenAddress = kingpin.Flag(
 			"web.listen-address",
 			"Address on which to expose metrics and web interface.",
-		).Default(fmt.Sprintf(":%d", e.DefaultPort)).String()
+		).Default(fmt.Sprintf(":%d", defaultPort)).String()
 		metricsPath = kingpin.Flag(
 			"web.telemetry-path",
 			"Path under which to expose metrics.",
@@ -42,21 +41,13 @@ func ParseArgs(e structs.Exporter) structs.Args {
 		).Default("release").String()
 	)
 
-	kingpin.Version(version.Print(e.ExporterName))
 	kingpin.CommandLine.UsageWriter(os.Stdout)
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 
 	azkabanConfPath = *azkabanConf
 
-	return structs.Args{
-		ListenAddress:          *listenAddress,
-		MetricsPath:            *metricsPath,
-		DisableExporterMetrics: *disableExporterMetrics,
-		MaxRequests:            *maxRequests,
-		LogLevel:               *logLevel,
-		GinMode:                *ginMode,
-	}
+	return basexporter.BuildArgs(*listenAddress, *metricsPath, *disableExporterMetrics, *maxRequests, *logLevel, *ginMode)
 }
 
 func getAzkabanConfPath() string {

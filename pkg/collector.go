@@ -6,8 +6,7 @@ import (
 	"github.com/morikuni/failure"
 	cmap "github.com/orcaman/concurrent-map"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/rea1shane/basexporter/required/functions"
-	"github.com/rea1shane/basexporter/required/structs"
+	"github.com/rea1shane/basexporter"
 	"github.com/rea1shane/basexporter/util"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -27,7 +26,7 @@ const (
 )
 
 func init() {
-	functions.RegisterCollector(subsystem, util.DefaultEnabled, NewAzkabanCollector)
+	basexporter.RegisterCollector(subsystem, util.DefaultEnabled, NewAzkabanCollector)
 }
 
 type azkabanCollector struct {
@@ -51,7 +50,7 @@ type azkabanCollector struct {
 	lastDuration    util.TypedDesc
 }
 
-func NewAzkabanCollector(namespace string, logger *log.Entry) (structs.Collector, error) {
+func NewAzkabanCollector(namespace string, logger *log.Entry) (basexporter.Collector, error) {
 	var (
 		labelProject     = []string{"project"}
 		labelProjectFlow = []string{"project", "flow"}
