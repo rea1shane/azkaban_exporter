@@ -6,8 +6,7 @@ import (
 	"github.com/morikuni/failure"
 	cmap "github.com/orcaman/concurrent-map"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/rea1shane/basexporter/required/functions"
-	"github.com/rea1shane/basexporter/required/structs"
+	"github.com/rea1shane/basexporter"
 	"github.com/rea1shane/basexporter/util"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -27,7 +26,7 @@ const (
 )
 
 func init() {
-	functions.RegisterCollector(subsystem, util.DefaultEnabled, NewAzkabanCollector)
+	basexporter.RegisterCollector(subsystem, util.DefaultEnabled, newAzkabanCollector)
 }
 
 type azkabanCollector struct {
@@ -51,7 +50,7 @@ type azkabanCollector struct {
 	lastDuration    util.TypedDesc
 }
 
-func NewAzkabanCollector(namespace string, logger *log.Entry) (structs.Collector, error) {
+func newAzkabanCollector(namespace string, logger *log.Entry) (basexporter.Collector, error) {
 	var (
 		labelProject     = []string{"project"}
 		labelProjectFlow = []string{"project", "flow"}
@@ -149,10 +148,10 @@ func NewAzkabanCollector(namespace string, logger *log.Entry) (structs.Collector
 
 func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 	var (
-		azkaban = GetAzkaban()
+		azkaban = getAzkaban()
 
-		projectsWithFlows = make(chan ProjectWithFlows)
-		executions        = make(chan Execution)
+		projectsWithFlows = make(chan projectWithFlows)
+		executions        = make(chan execution)
 
 		newCounter       = cmap.New()
 		preparingCounter = cmap.New()
@@ -176,16 +175,16 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 	defer cancelFunc()
 	group := errgroup.WithCancel(ctx)
 	group.Go(func(ctx context.Context) error {
-		err := azkaban.GetProjectWithFlows(ctx, projectsWithFlows)
+		err := azkaban.getProjectWithFlows(ctx, projectsWithFlows)
 		close(projectsWithFlows)
 		return err
 	})
 	group.Go(func(ctx context.Context) error {
 		var projectNames []string
 		g := errgroup.WithCancel(ctx)
-		for projectWithFlows := range projectsWithFlows {
-			projectName := projectWithFlows.ProjectName
-			flowIds := projectWithFlows.FlowIds
+		for projectFlows := range projectsWithFlows {
+			projectName := projectFlows.projectName
+			flowIds := projectFlows.flowIds
 			projectNames = append(projectNames, projectName)
 
 			newCounter.Set(projectName, 0)
@@ -221,7 +220,7 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 							case <-ctx.Done():
 								return ctx.Err()
 							default:
-								return azkaban.GetExecutions(ctx, projectName, fid, startIndex, listLength, executions)
+								return azkaban.getExecutions(ctx, projectName, fid, startIndex, listLength, executions)
 							}
 						})
 					}
@@ -236,83 +235,83 @@ func (c azkabanCollector) Update(ch chan<- prometheus.Metric) error {
 		removeKeys(totalKilledCounter, projectNames)
 		return err
 	})
-	for execution := range executions {
-		switch execution.Status {
+	for exec := range executions {
+		switch exec.status {
 		case "NEW":
-			lastStatusSecondMap, _ := lastStatusRecorder.Get(execution.ProjectName)
-			lastStatusSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, 4)
-			n, _ := newCounter.Get(execution.ProjectName)
-			newCounter.Set(execution.ProjectName, n.(int)+1)
+			lastStatusSecondMap, _ := lastStatusRecorder.Get(exec.projectName)
+			lastStatusSecondMap.(cmap.ConcurrentMap).Set(exec.flowID, 4)
+			n, _ := newCounter.Get(exec.projectName)
+			newCounter.Set(exec.projectName, n.(int)+1)
 		case "PREPARING":
-			lastStatusSecondMap, _ := lastStatusRecorder.Get(execution.ProjectName)
-			lastStatusSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, 3)
-			p, _ := preparingCounter.Get(execution.ProjectName)
-			preparingCounter.Set(execution.ProjectName, p.(int)+1)
+			lastStatusSecondMap, _ := lastStatusRecorder.Get(exec.projectName)
+			lastStatusSecondMap.(cmap.ConcurrentMap).Set(exec.flowID, 3)
+			p, _ := preparingCounter.Get(exec.projectName)
+			preparingCounter.Set(exec.projectName, p.(int)+1)
 		case "RUNNING":
-			if _, ok := findInt(runningExecs, execution.ExecID); !ok {
-				runningExecs = append(runningExecs, execution.ExecID)
+			if _, ok := findInt(runningExecs, exec.execID); !ok {
+				runningExecs = append(runningExecs, exec.execID)
 			}
-			lastStatusSecondMap, _ := lastStatusRecorder.Get(execution.ProjectName)
-			lastStatusSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, 2)
-			runningTime := time.Now().UnixMilli() - execution.StartTime
-			runningDurationSecondMap, _ := runningDurationRecorder.Get(execution.ProjectName)
-			runningDurationSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, runningTime)
+			lastStatusSecondMap, _ := lastStatusRecorder.Get(exec.projectName)
+			lastStatusSecondMap.(cmap.ConcurrentMap).Set(exec.flowID, 2)
+			runningTime := time.Now().UnixMilli() - exec.startTime
+			runningDurationSecondMap, _ := runningDurationRecorder.Get(exec.projectName)
+			runningDurationSecondMap.(cmap.ConcurrentMap).Set(exec.flowID, runningTime)
 			if inRange(runningTime, 0, 3600000) {
-				r0, _ := running0Counter.Get(execution.ProjectName)
-				running0Counter.Set(execution.ProjectName, r0.(int)+1)
+				r0, _ := running0Counter.Get(exec.projectName)
+				running0Counter.Set(exec.projectName, r0.(int)+1)
 			} else if inRange(runningTime, 3600000, 18000000) {
-				r60, _ := running60Counter.Get(execution.ProjectName)
-				running60Counter.Set(execution.ProjectName, r60.(int)+1)
+				r60, _ := running60Counter.Get(exec.projectName)
+				running60Counter.Set(exec.projectName, r60.(int)+1)
 			} else if inRange(runningTime, 18000000, 86400000) {
-				r300, _ := running300Counter.Get(execution.ProjectName)
-				running300Counter.Set(execution.ProjectName, r300.(int)+1)
+				r300, _ := running300Counter.Get(exec.projectName)
+				running300Counter.Set(exec.projectName, r300.(int)+1)
 			} else {
-				r1440, _ := running1440Counter.Get(execution.ProjectName)
-				running1440Counter.Set(execution.ProjectName, r1440.(int)+1)
+				r1440, _ := running1440Counter.Get(exec.projectName)
+				running1440Counter.Set(exec.projectName, r1440.(int)+1)
 			}
-			r, _ := runningCounter.Get(execution.ProjectName)
-			runningCounter.Set(execution.ProjectName, r.(int)+1)
+			r, _ := runningCounter.Get(exec.projectName)
+			runningCounter.Set(exec.projectName, r.(int)+1)
 		case "SUCCEEDED":
-			if index, ok := findInt(runningExecs, execution.ExecID); ok {
-				value, _ := totalSucceededCounter.Get(execution.ProjectName)
-				totalSucceededCounter.Set(execution.ProjectName, value.(int)+1)
+			if index, ok := findInt(runningExecs, exec.execID); ok {
+				value, _ := totalSucceededCounter.Get(exec.projectName)
+				totalSucceededCounter.Set(exec.projectName, value.(int)+1)
 				runningExecs = append(runningExecs[:index], runningExecs[index+1:]...)
 			}
-			lastStatusSecondMap, _ := lastStatusRecorder.Get(execution.ProjectName)
-			lastStatusSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, 1)
-			lastDurationSecondMap, _ := lastDurationRecorder.Get(execution.ProjectName)
-			lastDurationSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, execution.EndTime-execution.StartTime)
-			s, _ := succeededCounter.Get(execution.ProjectName)
-			succeededCounter.Set(execution.ProjectName, s.(int)+1)
+			lastStatusSecondMap, _ := lastStatusRecorder.Get(exec.projectName)
+			lastStatusSecondMap.(cmap.ConcurrentMap).Set(exec.flowID, 1)
+			lastDurationSecondMap, _ := lastDurationRecorder.Get(exec.projectName)
+			lastDurationSecondMap.(cmap.ConcurrentMap).Set(exec.flowID, exec.endTime-exec.startTime)
+			s, _ := succeededCounter.Get(exec.projectName)
+			succeededCounter.Set(exec.projectName, s.(int)+1)
 		case "FAILED":
-			if index, ok := findInt(runningExecs, execution.ExecID); ok {
-				value, _ := totalFailedCounter.Get(execution.ProjectName)
-				totalFailedCounter.Set(execution.ProjectName, value.(int)+1)
+			if index, ok := findInt(runningExecs, exec.execID); ok {
+				value, _ := totalFailedCounter.Get(exec.projectName)
+				totalFailedCounter.Set(exec.projectName, value.(int)+1)
 				runningExecs = append(runningExecs[:index], runningExecs[index+1:]...)
 			}
-			lastStatusSecondMap, _ := lastStatusRecorder.Get(execution.ProjectName)
-			lastStatusSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, 0)
-			lastDurationSecondMap, _ := lastDurationRecorder.Get(execution.ProjectName)
-			lastDurationSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, execution.EndTime-execution.StartTime)
-			f, _ := failedCounter.Get(execution.ProjectName)
-			failedCounter.Set(execution.ProjectName, f.(int)+1)
+			lastStatusSecondMap, _ := lastStatusRecorder.Get(exec.projectName)
+			lastStatusSecondMap.(cmap.ConcurrentMap).Set(exec.flowID, 0)
+			lastDurationSecondMap, _ := lastDurationRecorder.Get(exec.projectName)
+			lastDurationSecondMap.(cmap.ConcurrentMap).Set(exec.flowID, exec.endTime-exec.startTime)
+			f, _ := failedCounter.Get(exec.projectName)
+			failedCounter.Set(exec.projectName, f.(int)+1)
 		case "KILLED":
-			if index, ok := findInt(runningExecs, execution.ExecID); ok {
-				value, _ := totalKilledCounter.Get(execution.ProjectName)
-				totalKilledCounter.Set(execution.ProjectName, value.(int)+1)
+			if index, ok := findInt(runningExecs, exec.execID); ok {
+				value, _ := totalKilledCounter.Get(exec.projectName)
+				totalKilledCounter.Set(exec.projectName, value.(int)+1)
 				runningExecs = append(runningExecs[:index], runningExecs[index+1:]...)
 			}
-			lastStatusSecondMap, _ := lastStatusRecorder.Get(execution.ProjectName)
-			lastStatusSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, -2)
-			lastDurationSecondMap, _ := lastDurationRecorder.Get(execution.ProjectName)
-			lastDurationSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, execution.EndTime-execution.StartTime)
-			k, _ := killedCounter.Get(execution.ProjectName)
-			killedCounter.Set(execution.ProjectName, k.(int)+1)
+			lastStatusSecondMap, _ := lastStatusRecorder.Get(exec.projectName)
+			lastStatusSecondMap.(cmap.ConcurrentMap).Set(exec.flowID, -2)
+			lastDurationSecondMap, _ := lastDurationRecorder.Get(exec.projectName)
+			lastDurationSecondMap.(cmap.ConcurrentMap).Set(exec.flowID, exec.endTime-exec.startTime)
+			k, _ := killedCounter.Get(exec.projectName)
+			killedCounter.Set(exec.projectName, k.(int)+1)
 		default:
-			lastStatusSecondMap, _ := lastStatusRecorder.Get(execution.ProjectName)
-			lastStatusSecondMap.(cmap.ConcurrentMap).Set(execution.FlowID, -1)
-			u, _ := unknowCounter.Get(execution.ProjectName)
-			unknowCounter.Set(execution.ProjectName, u.(int)+1)
+			lastStatusSecondMap, _ := lastStatusRecorder.Get(exec.projectName)
+			lastStatusSecondMap.(cmap.ConcurrentMap).Set(exec.flowID, -1)
+			u, _ := unknowCounter.Get(exec.projectName)
+			unknowCounter.Set(exec.projectName, u.(int)+1)
 		}
 	}
 	group.Go(func(ctx context.Context) error {
