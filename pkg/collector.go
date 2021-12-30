@@ -26,7 +26,7 @@ const (
 )
 
 func init() {
-	basexporter.RegisterCollector(subsystem, util.DefaultEnabled, NewAzkabanCollector)
+	basexporter.RegisterCollector(subsystem, util.DefaultEnabled, newAzkabanCollector)
 }
 
 type azkabanCollector struct {
@@ -50,7 +50,7 @@ type azkabanCollector struct {
 	lastDuration    util.TypedDesc
 }
 
-func NewAzkabanCollector(namespace string, logger *log.Entry) (basexporter.Collector, error) {
+func newAzkabanCollector(namespace string, logger *log.Entry) (basexporter.Collector, error) {
 	var (
 		labelProject     = []string{"project"}
 		labelProjectFlow = []string{"project", "flow"}
