@@ -1,4 +1,4 @@
-version = 1.0.0
+version = 1.1.1
 temp_dir_name = azkaban_exporter-${version}
 tar_name = azkaban_exporter-${version}.tar.gz
 
