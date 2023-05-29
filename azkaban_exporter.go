@@ -11,6 +11,6 @@ func main() {
 	formatter := log.GetFormatter()
 	formatter.FieldsOrder = []string{"StatusCode", "Latency", "Collector", "Duration"}
 	logger.SetFormatter(formatter)
-	exporter.Register("azkaban_exporter", "azkaban", "Exporter for <a href=\"https://github.com/azkaban/azkaban\">Azkaban</a> workflow manager.", ":9900", logger)
+	exporter.Register("azkaban_exporter", "azkaban", "Exporter for <a href=\"https://azkaban.github.io/\" target=\"_blank\">Azkaban</a> workflow manager.", ":9900", logger)
 	exporter.Run()
 }
