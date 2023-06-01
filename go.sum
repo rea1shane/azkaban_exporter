@@ -64,6 +64,8 @@ github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 h1:ZqeYNhU3OH
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9Gz0M=
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
+github.com/morikuni/failure v1.1.2 h1:sD7RTQglZDw0r/z4Vl/bqEMQsq/lFCjD6siaeQCtxM8=
+github.com/morikuni/failure v1.1.2/go.mod h1:L0J9wqj1oMinkEy0raB974kGFVDH2sEKZFafjB10O+8=
 github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f h1:KUppIJq7/+SVif2QVs3tOP0zanoHgBEVAwHxUSIzRqU=
 github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/pelletier/go-toml/v2 v2.0.6 h1:nrzqCb7j9cDFj2coyLNLaZuJTLjWjlaz6nvTvIwycIU=
@@ -82,8 +84,8 @@ github.com/prometheus/procfs v0.9.0 h1:wzCHvIvM5SxWqYvwgVL7yJY8Lz3PKn49KQtpgMYJf
 github.com/prometheus/procfs v0.9.0/go.mod h1:+pB4zwohETzFnmlpe6yd2lSc+0/46IYZRB/chUwxUZY=
 github.com/rea1shane/exporter v1.2.0 h1:epBGVVA0Sy9Yce6SKzCSu/AkY5BxGAjGe3IIGNKS0aY=
 github.com/rea1shane/exporter v1.2.0/go.mod h1:xXA5oPBQtH8lguqbkOXx8W89wa9vXObbiMbXYJ9cUE8=
-github.com/rea1shane/gooooo v0.6.1 h1:359He3IzdWPf9aDT2/JRQxXi01QgmD8+2JJY8bpeMYo=
-github.com/rea1shane/gooooo v0.6.1/go.mod h1:nQtI4AeABEoflf6bJiA07/6wEtF/Q4oUD+LRQPNjeWY=
+github.com/rea1shane/gooooo v0.7.0 h1:RHP2R2QjySRHSLHP9hvLmFnaxZiaJxRurTUOSc8Agug=
+github.com/rea1shane/gooooo v0.7.0/go.mod h1:nQtI4AeABEoflf6bJiA07/6wEtF/Q4oUD+LRQPNjeWY=
 github.com/rogpeppe/go-internal v1.10.0 h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ=
 github.com/sirupsen/logrus v1.9.2 h1:oxx1eChJGI6Uks2ZC4W1zpLlVgqB8ner4EuQwV4Ik1Y=
 github.com/sirupsen/logrus v1.9.2/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=

@@ -8,7 +8,7 @@ import (
 
 func main() {
 	logger := logrus.New()
-	formatter := log.GetFormatter()
+	formatter := log.NewFormatter()
 	formatter.FieldsOrder = []string{"StatusCode", "Latency", "Collector", "Duration"}
 	logger.SetFormatter(formatter)
 	exporter.Register("azkaban_exporter", "azkaban", "Exporter for <a href=\"https://azkaban.github.io/\" target=\"_blank\">Azkaban</a> workflow manager.", ":9900", logger)
