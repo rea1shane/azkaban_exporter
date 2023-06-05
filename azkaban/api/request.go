@@ -2,105 +2,120 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"github.com/morikuni/failure"
-	"github.com/rea1shane/basexporter/util"
+	"github.com/rea1shane/gooooo/data"
+	myHttp "github.com/rea1shane/gooooo/http"
 	"net/http"
-	"strconv"
+	"net/url"
 	"strings"
 )
 
-var h = util.GetHttp(3, 500)
-
 const (
-	RequestError failure.StringCode = "request error"
+	NewRequestErrorMessage failure.Message    = "new request"
+	AzkabanError           failure.StringCode = "AzkabanError"
 )
 
 // Authenticate return a sessionId
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#authenticate
-func Authenticate(p AuthenticateParam, ctx context.Context) (string, error) {
-	method := "POST"
-	response := Auth{}
-	payload := strings.NewReader("action=login&username=" + p.Username + "&password=" + p.Password)
-	req, err := http.NewRequest(method, p.ServerUrl, payload)
+func Authenticate(params AuthenticateParams, ctx context.Context) (string, error) {
+	payload := strings.NewReader(fmt.Sprintf("action=login&username=%s&password=%s", params.Username, params.Password))
+	req, err := http.NewRequest(http.MethodPost, params.ServerUrl, payload)
 	if err != nil {
-		return "", failure.Wrap(err)
+		return "", failure.Wrap(err, NewRequestErrorMessage)
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	err = h.Request(req, ctx, &response)
+	preprocess(req, ctx)
+
+	response := Auth{}
+	err = myHttp.Load(http.DefaultClient, req, &response, data.JsonFormat)
 	if err != nil {
-		return "", err
+		return "", failure.Wrap(err, newRequestContext(req))
 	}
 	if response.Error != "" {
-		return "", failure.New(RequestError, failure.Context{
-			"reason": response.Error,
-		})
+		return "", failure.New(AzkabanError, newAzkabanErrorContext(req, response.Error))
 	}
 	return response.SessionId, nil
 }
 
 // FetchUserProjects
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-user-projects
-func FetchUserProjects(p FetchUserProjectsParam, ctx context.Context) ([]Project, error) {
-	method := "GET"
-	response := UserProjects{}
-	url := p.ServerUrl + "/index?ajax=fetchuserprojects&session.id=" + p.SessionId
-	req, err := http.NewRequest(method, url, nil)
+func FetchUserProjects(params FetchUserProjectsParams, ctx context.Context) ([]Project, error) {
+	u := fmt.Sprintf("%s/index?ajax=fetchuserprojects&session.id=%s", params.ServerUrl, params.SessionId)
+	req, err := http.NewRequest(http.MethodGet, u, nil)
 	if err != nil {
-		return nil, failure.Wrap(err)
+		return nil, failure.Wrap(err, NewRequestErrorMessage)
 	}
-	err = h.Request(req, ctx, &response)
+	preprocess(req, ctx)
+
+	response := UserProjects{}
+	err = myHttp.Load(http.DefaultClient, req, &response, data.JsonFormat)
 	if err != nil {
 		return nil, err
 	}
 	if response.Error != "" {
-		return nil, failure.New(RequestError, failure.Context{
-			"reason": response.Error,
-		})
+		return nil, failure.New(AzkabanError, newAzkabanErrorContext(req, response.Error))
 	}
 	return response.Projects, nil
 }
 
 // FetchFlowsOfAProject
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-flows-of-a-project
-func FetchFlowsOfAProject(p FetchFlowsOfAProjectParam, ctx context.Context) ([]Flow, error) {
-	method := "GET"
-	response := ProjectFlows{}
-	url := p.ServerUrl + "/manager?ajax=fetchprojectflows&session.id=" + p.SessionId + "&project=" + p.ProjectName
-	req, err := http.NewRequest(method, url, nil)
+func FetchFlowsOfAProject(params FetchFlowsOfAProjectParams, ctx context.Context) ([]Flow, error) {
+	u := fmt.Sprintf("%s/manager?ajax=fetchprojectflows&session.id=%s&project=%s", params.ServerUrl, params.SessionId, params.ProjectName)
+	req, err := http.NewRequest(http.MethodGet, u, nil)
 	if err != nil {
-		return nil, failure.Wrap(err)
+		return nil, failure.Wrap(err, NewRequestErrorMessage)
 	}
-	err = h.Request(req, ctx, &response)
+	preprocess(req, ctx)
+
+	response := ProjectFlows{}
+	err = myHttp.Load(http.DefaultClient, req, &response, data.JsonFormat)
 	if err != nil {
 		return nil, err
 	}
 	if response.Error != "" {
-		return nil, failure.New(RequestError, failure.Context{
-			"reason": response.Error,
-		})
+		return nil, failure.New(AzkabanError, newAzkabanErrorContext(req, response.Error))
 	}
 	return response.Flows, nil
 }
 
 // FetchExecutionsOfAFlow
 // doc https://github.com/azkaban/azkaban/blob/master/docs/ajaxApi.rst#fetch-executions-of-a-flow
-func FetchExecutionsOfAFlow(p FetchExecutionsOfAFlowParam, ctx context.Context) (Executions, error) {
-	method := "GET"
-	response := Executions{}
-	url := p.ServerUrl + "/manager?ajax=fetchFlowExecutions&session.id=" + p.SessionId + "&project=" + p.ProjectName + "&flow=" + p.FlowId +
-		"&start=" + strconv.Itoa(p.StartIndex) + "&length=" + strconv.Itoa(p.ListLength)
-	req, err := http.NewRequest(method, url, nil)
+func FetchExecutionsOfAFlow(params FetchExecutionsOfAFlowParams, ctx context.Context) (Executions, error) {
+	u := fmt.Sprintf("%s/manager?ajax=fetchFlowExecutions&session.id=%s&project=%s&flow=%s&start=%d&length=%d", params.ServerUrl, params.SessionId, params.ProjectName, params.FlowId, params.StartIndex, params.ListLength)
+	req, err := http.NewRequest(http.MethodGet, u, nil)
 	if err != nil {
-		return Executions{}, failure.Wrap(err)
+		return Executions{}, failure.Wrap(err, NewRequestErrorMessage)
 	}
-	err = h.Request(req, ctx, &response)
+	preprocess(req, ctx)
+
+	response := Executions{}
+	err = myHttp.Load(http.DefaultClient, req, &response, data.JsonFormat)
 	if err != nil {
 		return Executions{}, err
 	}
 	if response.Error != "" {
-		return Executions{}, failure.New(RequestError, failure.Context{
-			"reason": response.Error,
-		})
+		return Executions{}, failure.New(AzkabanError, newAzkabanErrorContext(req, response.Error))
 	}
 	return response, nil
+}
+
+/* --------------------------------------------- */
+
+func preprocess(req *http.Request, ctx context.Context) {
+	req = req.WithContext(ctx)
+	req.URL.RawQuery = url.PathEscape(req.URL.RawQuery)
+}
+
+func newRequestContext(req *http.Request) failure.Context {
+	return failure.Context{
+		"url": req.URL.String(),
+	}
+}
+
+func newAzkabanErrorContext(req *http.Request, errMsg string) failure.Context {
+	requestContext := newRequestContext(req)
+	requestContext["err_msg"] = errMsg
+	return requestContext
 }

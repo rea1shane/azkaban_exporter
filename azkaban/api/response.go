@@ -44,6 +44,7 @@ type Executions struct {
 	Flow       string      `json:"flow"`
 	Error      string      `json:"error"`
 }
+
 type Execution struct {
 	SubmitTime int64  `json:"submitTime"`
 	SubmitUser string `json:"submitUser"`

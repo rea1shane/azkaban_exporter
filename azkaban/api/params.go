@@ -1,23 +1,23 @@
 package api
 
-type AuthenticateParam struct {
+type AuthenticateParams struct {
 	ServerUrl string
 	Username  string
 	Password  string
 }
 
-type FetchUserProjectsParam struct {
+type FetchUserProjectsParams struct {
 	ServerUrl string
 	SessionId string
 }
 
-type FetchFlowsOfAProjectParam struct {
+type FetchFlowsOfAProjectParams struct {
 	ServerUrl   string
 	SessionId   string
 	ProjectName string
 }
 
-type FetchExecutionsOfAFlowParam struct {
+type FetchExecutionsOfAFlowParams struct {
 	ServerUrl   string
 	SessionId   string
 	ProjectName string

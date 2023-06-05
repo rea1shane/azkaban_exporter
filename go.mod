@@ -3,10 +3,9 @@ module github.com/rea1shane/azkaban_exporter
 go 1.20
 
 require (
-	github.com/goccy/go-json v0.10.0
 	github.com/morikuni/failure v1.1.2
 	github.com/rea1shane/exporter v1.2.0
-	github.com/rea1shane/gooooo v0.7.0
+	github.com/rea1shane/gooooo v0.7.2
 	github.com/sirupsen/logrus v1.9.2
 )
 
@@ -26,6 +25,7 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.11.2 // indirect
+	github.com/goccy/go-json v0.10.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -37,6 +37,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
