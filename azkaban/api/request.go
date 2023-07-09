@@ -30,10 +30,10 @@ func Authenticate(params AuthenticateParams, ctx context.Context) (string, error
 	response := Auth{}
 	err = myHttp.Load(http.DefaultClient, req, &response, data.JsonFormat)
 	if err != nil {
-		return "", failure.Wrap(err, newRequestContext(req))
+		return "", wrapRequestError(err, req)
 	}
 	if response.Error != "" {
-		return "", failure.New(AzkabanError, newAzkabanErrorContext(req, response.Error))
+		return "", newAzkabanError(req, response.Error)
 	}
 	return response.SessionId, nil
 }
@@ -51,10 +51,10 @@ func FetchUserProjects(params FetchUserProjectsParams, ctx context.Context) ([]P
 	response := UserProjects{}
 	err = myHttp.Load(http.DefaultClient, req, &response, data.JsonFormat)
 	if err != nil {
-		return nil, err
+		return nil, wrapRequestError(err, req)
 	}
 	if response.Error != "" {
-		return nil, failure.New(AzkabanError, newAzkabanErrorContext(req, response.Error))
+		return nil, newAzkabanError(req, response.Error)
 	}
 	return response.Projects, nil
 }
@@ -72,10 +72,10 @@ func FetchFlowsOfAProject(params FetchFlowsOfAProjectParams, ctx context.Context
 	response := ProjectFlows{}
 	err = myHttp.Load(http.DefaultClient, req, &response, data.JsonFormat)
 	if err != nil {
-		return nil, err
+		return nil, wrapRequestError(err, req)
 	}
 	if response.Error != "" {
-		return nil, failure.New(AzkabanError, newAzkabanErrorContext(req, response.Error))
+		return nil, newAzkabanError(req, response.Error)
 	}
 	return response.Flows, nil
 }
@@ -93,29 +93,31 @@ func FetchExecutionsOfAFlow(params FetchExecutionsOfAFlowParams, ctx context.Con
 	response := Executions{}
 	err = myHttp.Load(http.DefaultClient, req, &response, data.JsonFormat)
 	if err != nil {
-		return Executions{}, err
+		return Executions{}, wrapRequestError(err, req)
 	}
 	if response.Error != "" {
-		return Executions{}, failure.New(AzkabanError, newAzkabanErrorContext(req, response.Error))
+		return Executions{}, newAzkabanError(req, response.Error)
 	}
 	return response, nil
 }
-
-/* --------------------------------------------- */
 
 func preprocess(req *http.Request, ctx context.Context) {
 	req = req.WithContext(ctx)
 	req.URL.RawQuery = url.PathEscape(req.URL.RawQuery)
 }
 
+func wrapRequestError(err error, req *http.Request) error {
+	return failure.Wrap(err, newRequestContext(req))
+}
+
+func newAzkabanError(req *http.Request, errMsg string) error {
+	requestContext := newRequestContext(req)
+	requestContext["err_msg"] = errMsg
+	return failure.New(AzkabanError, requestContext)
+}
+
 func newRequestContext(req *http.Request) failure.Context {
 	return failure.Context{
 		"url": req.URL.String(),
 	}
-}
-
-func newAzkabanErrorContext(req *http.Request, errMsg string) failure.Context {
-	requestContext := newRequestContext(req)
-	requestContext["err_msg"] = errMsg
-	return requestContext
 }
