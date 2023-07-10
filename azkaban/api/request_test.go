@@ -63,8 +63,8 @@ func TestAPI(t *testing.T) {
 	executions, err := FetchExecutionsOfAFlow(FetchExecutionsOfAFlowParams{
 		ServerUrl:   serverUrl,
 		SessionId:   sessionId,
-		ProjectName: projects[0].ProjectName,
-		FlowId:      flows[0].FlowId,
+		ProjectName: projects[0].ProjectName, // or specify manually
+		FlowId:      flows[0].FlowId,         // or specify manually
 		StartIndex:  0,
 		ListLength:  1,
 	}, context.Background())
